@@ -1,0 +1,25 @@
+.DS_Store
+.idea
+.vscode
+*.iml
+
+# Полный клон репозитория Flutter SDK — не часть приложения; не коммитить.
+/flutter/
+
+backend/node_modules
+backend/dist
+backend/dev.db
+backend/dev.db-journal
+backend/prisma/*.db
+backend/prisma/*.db-journal
+backend/.env
+!backend/.env.example
+
+mobile/.dart_tool
+mobile/build
+mobile/.flutter-plugins-dependencies
+mobile/.packages
+mobile/android/key.properties
+mobile/android/app/*.jks
+mobile/android/app/*.keystore
+mobile/config/dart_defines/prod.json

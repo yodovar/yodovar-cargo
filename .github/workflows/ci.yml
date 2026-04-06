@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npx prisma generate
+        env:
+          DATABASE_URL: file:./ci.db
+      - run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: file:./ci.db
+      - run: npm run build
+        env:
+          DATABASE_URL: file:./ci.db
+          JWT_SECRET: ci-access-secret-at-least-32-chars-long
+          JWT_REFRESH_SECRET: ci-refresh-secret-at-least-32-chars-xx
+
+  mobile:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test

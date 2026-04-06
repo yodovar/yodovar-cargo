@@ -1,0 +1,5 @@
+# Скопируйте в key.properties и заполните. Не коммитьте key.properties и .jks в git.
+storePassword=
+keyPassword=
+keyAlias=upload
+storeFile=my-release-key.jks

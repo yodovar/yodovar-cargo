@@ -1,0 +1,4 @@
+{
+  "API_BASE": "http://localhost:52247/",
+  "APP_ENV": "development"
+}
