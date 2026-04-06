@@ -26,4 +26,23 @@ docker compose up -d
 
 ## CI
 
-[`.github/workflows/ci.yml`](.github/workflows/ci.yml) — проверка только **mobile** (`flutter analyze`, `flutter test`).
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) — проверка **mobile** и **backend**.
+
+## Публикация на GitHub (приватный репозиторий)
+
+Репозиторий Git уже инициализирован в корне. Один раз войдите в GitHub CLI и создайте удалённый репозиторий:
+
+```bash
+cd /Users/a1/Documents/cargo
+brew install gh   # если ещё нет
+gh auth login
+gh repo create yodovar-cargo --private --source=. --remote=origin --push \
+  --description "Yodovar Cargo — Flutter + NestJS"
+```
+
+Имя `yodovar-cargo` можно заменить на своё. Если репозиторий уже создан на сайте:
+
+```bash
+git remote add origin https://github.com/ВАШ_ЛОГИН/ИМЯ_РЕПО.git
+git push -u origin main
+```
