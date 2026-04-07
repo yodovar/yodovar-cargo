@@ -10,14 +10,14 @@ abstract final class TjPhone {
   static String nationalDigits(String raw) {
     var d = raw.replaceAll(RegExp(r'\D'), '');
     if (d.startsWith('992')) d = d.substring(3);
-    if (d.startsWith('0')) d = d.substring(1);
+    if (d.length == 10 && d.startsWith('0')) d = d.substring(1);
     return d;
   }
 
   static String? validateNationalField(String? v) {
     final d = nationalDigits(v ?? '');
     if (d.length != 9) {
-      return 'Введите 9 цифр номера (Таджикистан, код +992)';
+      return 'Введите 9 цифр номера (можно с 0 в начале)';
     }
     return null;
   }
@@ -27,6 +27,6 @@ abstract final class TjPhone {
 
   static List<TextInputFormatter> get nationalInputFormatters => [
         FilteringTextInputFormatter.digitsOnly,
-        LengthLimitingTextInputFormatter(9),
+        LengthLimitingTextInputFormatter(10),
       ];
 }

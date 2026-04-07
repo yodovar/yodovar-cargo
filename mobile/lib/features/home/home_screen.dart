@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../core/app_theme.dart';
+import '../../core/pickup_points.dart';
 import '../../core/user_prefs.dart';
 
 /// Главная для клиента: быстрые действия, трекинг, список отправлений (пока макет).
@@ -15,17 +17,28 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   String? _name;
+  String? _phone;
+  String _pickupCityId = pickupPoints.first.id;
   final _trackCtrl = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _loadName();
+    _loadProfile();
   }
 
-  Future<void> _loadName() async {
+  Future<void> _loadProfile() async {
     final n = await widget.prefs.readDisplayName();
-    if (mounted) setState(() => _name = n);
+    final p = await widget.prefs.readPhone();
+    final cityId = await widget.prefs.readPickupCityId();
+    if (!mounted) return;
+    setState(() {
+      _name = n;
+      _phone = p;
+      if (cityId != null && pickupPoints.any((e) => e.id == cityId)) {
+        _pickupCityId = cityId;
+      }
+    });
   }
 
   @override
@@ -74,6 +87,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 22),
                   _QuickGrid(),
+                  const SizedBox(height: 16),
+                  _SelectedAddressCard(
+                    cityId: _pickupCityId,
+                    userName: _name ?? '',
+                    userPhone: _phone ?? '',
+                  ),
                   const SizedBox(height: 20),
                   _TrackCard(controller: _trackCtrl),
                   const SizedBox(height: 20),
@@ -331,6 +350,81 @@ class _QuickTile extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _SelectedAddressCard extends StatelessWidget {
+  const _SelectedAddressCard({
+    required this.cityId,
+    required this.userName,
+    required this.userPhone,
+  });
+
+  final String cityId;
+  final String userName;
+  final String userPhone;
+
+  @override
+  Widget build(BuildContext context) {
+    final point = pickupById(cityId);
+    final addr = pickupAddressText(
+      point: point,
+      userName: userName,
+      userPhone: userPhone,
+    );
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.store_mall_directory_outlined, color: AppTheme.brandRed),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Выбранный адрес: ${point.city}',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            addr,
+            style: TextStyle(color: Colors.grey.shade700, height: 1.4),
+          ),
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: addr));
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Адрес скопирован'),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
+            icon: const Icon(Icons.copy_rounded),
+            label: const Text('Копировать'),
+          ),
+        ],
       ),
     );
   }

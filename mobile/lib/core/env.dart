@@ -11,7 +11,7 @@ class AppEnv {
 
   static const String apiBase = String.fromEnvironment(
     'API_BASE',
-    defaultValue: 'http://localhost:52247/',
+    defaultValue: 'http://localhost:59929/',
   );
 
   static bool get isProduction => flavor == 'production';

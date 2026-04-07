@@ -25,3 +25,12 @@ model PendingRegistration {
   expiresAt    DateTime
   createdAt    DateTime @default(now())
 }
+
+
+model PendingOtp {
+  id        String   @id @default(uuid())
+  phone     String   @unique
+  otpHash   String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}

@@ -11,58 +11,91 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
   );
 });
 
+class VerifyOtpResult {
+  const VerifyOtpResult({
+    required this.needsProfileName,
+    required this.profileName,
+  });
+
+  final bool needsProfileName;
+  final String profileName;
+}
+
 class AuthRepository {
   AuthRepository({required this.dio, required this.storage});
 
   final Dio dio;
   final TokenStorage storage;
 
-  Future<void> login({
-    required String phone,
-    required String password,
-  }) async {
-    final res = await dio.post<Map<String, dynamic>>(
-      '/auth/login',
-      data: {'phone': phone, 'password': password},
-    );
-    await _saveTokens(res.data);
+  Future<void> requestOtp({required String phone}) async {
+    await dio.post<void>('/auth/request-otp', data: {'phone': phone});
   }
 
-  /// Шаг 1 регистрации: SMS с 6-значным кодом.
-  Future<void> registerSendOtp({
-    required String name,
-    required String phone,
-    required String password,
-  }) async {
-    await dio.post<void>(
-      '/auth/register/send-otp',
-      data: {'name': name, 'phone': phone, 'password': password},
-    );
+  Future<void> resendOtp({required String phone}) async {
+    await dio.post<void>('/auth/resend-otp', data: {'phone': phone});
   }
 
-  /// Шаг 2: проверка кода и выдача токенов.
-  Future<void> registerVerify({
+  Future<VerifyOtpResult> verifyOtp({
     required String phone,
     required String code,
   }) async {
     final res = await dio.post<Map<String, dynamic>>(
-      '/auth/register/verify',
+      '/auth/verify-otp',
       data: {'phone': phone, 'code': code},
     );
     await _saveTokens(res.data);
-  }
-
-  Future<void> registerResendOtp({required String phone}) async {
-    await dio.post<void>(
-      '/auth/register/resend-otp',
-      data: {'phone': phone},
+    final d = res.data ?? {};
+    return VerifyOtpResult(
+      needsProfileName: d['needsProfileName'] == true,
+      profileName: (d['profileName'] as String? ?? '').trim(),
     );
   }
 
+  Future<void> setProfileName({
+    required String phone,
+    required String name,
+  }) async {
+    await dio.post<void>('/auth/set-profile-name', data: {
+      'phone': phone,
+      'name': name.trim(),
+    });
+  }
+
+  Future<String> changePhone({
+    required String currentPhone,
+    required String newPhone,
+  }) async {
+    final res = await dio.post<Map<String, dynamic>>(
+      '/auth/change-phone',
+      data: {'currentPhone': currentPhone, 'newPhone': newPhone},
+    );
+    final p = (res.data?['phone'] as String? ?? '').trim();
+    return p;
+  }
+
+  // Backward compatibility with previous screens still in project.
+  Future<void> login({required String phone, String? password}) =>
+      requestOtp(phone: phone);
+
+  Future<void> registerSendOtp({
+    required String name,
+    required String phone,
+    required String password,
+  }) =>
+      requestOtp(phone: phone);
+
+  Future<void> registerVerify({
+    required String phone,
+    required String code,
+  }) async {
+    await verifyOtp(phone: phone, code: code);
+  }
+
+  Future<void> registerResendOtp({required String phone}) =>
+      resendOtp(phone: phone);
+
   Future<void> _saveTokens(Map<String, dynamic>? data) async {
-    if (data == null) {
-      throw const FormatException('Пустой ответ сервера');
-    }
+    if (data == null) throw const FormatException('Пустой ответ сервера');
     final access = data['accessToken'] as String?;
     final refresh = data['refreshToken'] as String?;
     if (access == null || refresh == null) {
@@ -76,9 +109,7 @@ String? _nestMessage(dynamic data) {
   if (data is! Map) return null;
   final m = data['message'];
   if (m is String) return m;
-  if (m is List && m.isNotEmpty && m.first is String) {
-    return m.first as String;
-  }
+  if (m is List && m.isNotEmpty && m.first is String) return m.first as String;
   return null;
 }
 
@@ -91,15 +122,10 @@ String messageFromDio(Object e) {
     }
     final status = e.response?.statusCode;
     final data = e.response?.data;
-    final fromNest = _nestMessage(data);
-    if (fromNest != null) return fromNest;
-    if (data is Map && data['error'] is String) {
-      return data['error'] as String;
-    }
-    if (status == 401) return 'Неверный телефон или пароль';
+    final m = _nestMessage(data);
+    if (m != null) return m;
     if (status == 400) return 'Проверьте введённые данные';
     if (status == 404) return 'Данные не найдены';
-    if (status == 409) return 'Этот номер уже зарегистрирован';
     if (status != null) return 'Ошибка сервера ($status)';
   }
   return 'Что-то пошло не так. Попробуйте ещё раз';

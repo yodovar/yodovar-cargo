@@ -1,160 +1,220 @@
 import 'package:flutter/material.dart';
 
-import '../../core/app_theme.dart';
-import '../auth/login_screen.dart';
-import '../auth/register_screen.dart';
+import '../auth/phone_auth_screen.dart';
 
-class WelcomeScreen extends StatelessWidget {
+class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
+
+  @override
+  State<WelcomeScreen> createState() => _WelcomeScreenState();
+}
+
+class _WelcomeScreenState extends State<WelcomeScreen> {
+  final _pc = PageController();
+  int _index = 0;
+
+  final _pages = const [
+    _OnboardingData(
+      icon: Icons.waving_hand_rounded,
+      title: 'Добро пожаловать в Yodovar Cargo',
+      body:
+          'Начни покупать из Китая без посредников, предоплат и скрытых комиссий.',
+      hint: 'Всё за 3 минуты',
+    ),
+    _OnboardingData(
+      icon: Icons.shopping_bag_rounded,
+      title: 'Установи маркет и вставь наш адрес',
+      body:
+          'Это займёт около 1 минуты. Мы покажем, куда и что вставить правильно.',
+      hint: 'Пошаговая инструкция внутри',
+    ),
+    _OnboardingData(
+      icon: Icons.local_shipping_rounded,
+      title: 'Условия доставки',
+      body:
+          'Обычно от 14 до 25 дней после приёма товара на нашем складе в Китае.',
+      hint: 'Прозрачные сроки и статусы',
+    ),
+    _OnboardingData(
+      icon: Icons.groups_rounded,
+      title: 'С нами заказывают тысячи клиентов',
+      body:
+          'Надёжная доставка, отслеживание в приложении и поддержка на каждом шаге.',
+      hint: 'Готовы начать?',
+    ),
+  ];
+
+  @override
+  void dispose() {
+    _pc.dispose();
+    super.dispose();
+  }
+
+  void _next() {
+    if (_index < _pages.length - 1) {
+      _pc.nextPage(
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeOut,
+      );
+    } else {
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => const PhoneAuthScreen()),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        children: [
-          // Мягкий градиент сверху
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: MediaQuery.sizeOf(context).height * 0.42,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    AppTheme.brandRed.withValues(alpha: 0.12),
-                    AppTheme.surface,
-                  ],
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: PageView.builder(
+                controller: _pc,
+                itemCount: _pages.length,
+                onPageChanged: (i) => setState(() => _index = i),
+                itemBuilder: (_, i) {
+                  final d = _pages[i];
+                  return Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(24),
+                        gradient: const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Color(0xFFFDECEC), Color(0xFFF7F8FA)],
+                        ),
+                        border: Border.all(color: const Color(0xFFE9E9E9)),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Center(
+                              child: Container(
+                                width: 98,
+                                height: 98,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFE53935),
+                                  borderRadius: BorderRadius.circular(28),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(0xFFE53935)
+                                          .withValues(alpha: 0.3),
+                                      blurRadius: 22,
+                                      offset: const Offset(0, 10),
+                                    ),
+                                  ],
+                                ),
+                                child: Icon(d.icon, color: Colors.white, size: 56),
+                              ),
+                            ),
+                            const SizedBox(height: 26),
+                            Text(
+                              d.title,
+                              style: const TextStyle(
+                                fontSize: 28,
+                                height: 1.1,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            Text(
+                              d.body,
+                              style: TextStyle(
+                                fontSize: 16,
+                                height: 1.45,
+                                color: Colors.grey.shade800,
+                              ),
+                            ),
+                            const Spacer(),
+                            Text(
+                              d.hint,
+                              style: TextStyle(
+                                color: Colors.grey.shade700,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(
+                _pages.length,
+                (i) => AnimatedContainer(
+                  duration: const Duration(milliseconds: 220),
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  width: _index == i ? 24 : 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: _index == i
+                        ? const Color(0xFFE53935)
+                        : Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
               ),
             ),
-          ),
-          // Декоративные круги
-          Positioned(
-            top: -40,
-            right: -30,
-            child: _BlurCircle(
-              size: 140,
-              color: AppTheme.brandRed.withValues(alpha: 0.08),
-            ),
-          ),
-          Positioned(
-            top: 120,
-            left: -50,
-            child: _BlurCircle(
-              size: 100,
-              color: AppTheme.brandRed.withValues(alpha: 0.06),
-            ),
-          ),
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 28),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+            const SizedBox(height: 14),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+              child: Row(
                 children: [
-                  const SizedBox(height: 48),
-                  // Логотип-иконка
-                  Center(
-                    child: Container(
-                      width: 88,
-                      height: 88,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppTheme.brandRed.withValues(alpha: 0.2),
-                            blurRadius: 24,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.local_shipping_rounded,
-                        size: 44,
-                        color: AppTheme.brandRed,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 28),
-                  Text(
-                    'Yodovar Cargo',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.5,
-                          color: const Color(0xFF1A1A1A),
-                        ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Доставка из Китая в Таджикистан.\nОтслеживайте посылки в одном приложении.',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          height: 1.45,
-                          color: Colors.grey.shade700,
-                        ),
-                  ),
+                  if (_index < _pages.length - 1)
+                    TextButton(
+                      onPressed: () {
+                        _pc.animateToPage(
+                          _pages.length - 1,
+                          duration: const Duration(milliseconds: 280),
+                          curve: Curves.easeOut,
+                        );
+                      },
+                      child: const Text('Пропустить'),
+                    )
+                  else
+                    const SizedBox(width: 88),
                   const Spacer(),
                   FilledButton(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => const LoginScreen(),
-                        ),
-                      );
-                    },
-                    child: const Text('Войти'),
-                  ),
-                  const SizedBox(height: 14),
-                  OutlinedButton(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => const RegisterScreen(),
-                        ),
-                      );
-                    },
-                    child: const Text('Регистрация'),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Продолжая, вы соглашаетесь с условиями сервиса',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey.shade600,
-                      height: 1.35,
+                    onPressed: _next,
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(0, 54),
+                      padding: const EdgeInsets.symmetric(horizontal: 18),
+                    ),
+                    child: Text(
+                      _index == _pages.length - 1
+                          ? 'Начать регистрацию'
+                          : 'Далее',
                     ),
                   ),
-                  SizedBox(height: 8 + MediaQuery.paddingOf(context).bottom),
                 ],
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 }
 
-class _BlurCircle extends StatelessWidget {
-  const _BlurCircle({required this.size, required this.color});
+class _OnboardingData {
+  const _OnboardingData({
+    required this.icon,
+    required this.title,
+    required this.body,
+    required this.hint,
+  });
 
-  final double size;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: color,
-      ),
-    );
-  }
+  final IconData icon;
+  final String title;
+  final String body;
+  final String hint;
 }

@@ -20,8 +20,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('Yodovar Cargo'), findsOneWidget);
-    expect(find.text('Войти'), findsOneWidget);
-    expect(find.text('Регистрация'), findsOneWidget);
+    expect(find.textContaining('Добро пожаловать в Yodovar Cargo'), findsOneWidget);
+    expect(find.text('Далее'), findsOneWidget);
   });
 }
