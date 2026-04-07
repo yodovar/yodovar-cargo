@@ -22,7 +22,7 @@ class YodovarApp extends StatelessWidget {
     return ProviderScope(
       overrides: providerOverrides,
       child: MaterialApp(
-        title: 'Yodovar Cargo',
+        title: 'Insof Cargo',
         debugShowCheckedModeBanner: false,
         scaffoldMessengerKey: appMessengerKey,
         theme: AppTheme.light,

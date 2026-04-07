@@ -62,25 +62,36 @@ class _CargoPreloaderState extends State<CargoPreloader>
             final bob = 5 * (1 - (t - 0.5).abs() * 2);
             return Transform.translate(
               offset: Offset(0, -bob),
-              child: Row(
+              child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    Icons.inventory_2_rounded,
-                    size: s * 0.45,
-                    color: AppTheme.brandRed.withValues(alpha: 0.35 + t * 0.15),
+                  Image.asset(
+                    'assets/images/logo.png',
+                    width: s * 2.5,
+                    fit: BoxFit.contain,
                   ),
-                  SizedBox(width: s * 0.08),
-                  Icon(
-                    Icons.local_shipping_rounded,
-                    size: s,
-                    color: AppTheme.brandRed,
-                  ),
-                  SizedBox(width: s * 0.08),
-                  Icon(
-                    Icons.inventory_2_rounded,
-                    size: s * 0.45,
-                    color: AppTheme.brandRed.withValues(alpha: 0.5 - t * 0.15),
+                  const SizedBox(height: 10),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.inventory_2_rounded,
+                        size: s * 0.45,
+                        color: AppTheme.brandRed.withValues(alpha: 0.35 + t * 0.15),
+                      ),
+                      SizedBox(width: s * 0.08),
+                      Icon(
+                        Icons.local_shipping_rounded,
+                        size: s,
+                        color: AppTheme.brandRed,
+                      ),
+                      SizedBox(width: s * 0.08),
+                      Icon(
+                        Icons.inventory_2_rounded,
+                        size: s * 0.45,
+                        color: AppTheme.brandRed.withValues(alpha: 0.5 - t * 0.15),
+                      ),
+                    ],
                   ),
                 ],
               ),

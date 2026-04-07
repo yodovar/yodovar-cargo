@@ -226,7 +226,7 @@ class _RedHeaderBar extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             Text(
-              'YODOVAR CARGO',
+              'INSOF CARGO',
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.98),
                 fontWeight: FontWeight.w800,

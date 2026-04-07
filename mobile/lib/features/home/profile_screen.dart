@@ -6,6 +6,7 @@ import '../../core/user_prefs.dart';
 import '../auth/auth_session.dart';
 import 'profile_details_screen.dart';
 import 'pickup_points_screen.dart';
+import 'tariffs_screen.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -67,7 +68,13 @@ class ProfileScreen extends ConsumerWidget {
                       icon: Icons.price_change_outlined,
                       title: 'Тарифы',
                       subtitle: 'Стоимость доставки и услуги',
-                      onTap: () => _showSoon(context),
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const TariffsScreen(),
+                          ),
+                        );
+                      },
                     ),
                     _ActionTile(
                       icon: Icons.inventory_2_outlined,

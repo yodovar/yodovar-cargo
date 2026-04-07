@@ -8,6 +8,7 @@ import { ResendRegisterOtpDto } from './dto/resend-register-otp.dto';
 import { VerifyRegisterDto } from './dto/verify-register.dto';
 import { SetProfileNameDto } from './dto/set-profile-name.dto';
 import { ChangePhoneDto } from './dto/change-phone.dto';
+import { StaffLoginDto } from './dto/staff-login.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -54,6 +55,11 @@ export class AuthController {
   @Post('login')
   login(@Body() dto: LoginDto) {
     return this.auth.requestOtp(dto.phone);
+  }
+
+  @Post('staff-login')
+  staffLogin(@Body() dto: StaffLoginDto) {
+    return this.auth.staffLogin(dto.name, dto.password);
   }
 
   @Post('set-profile-name')

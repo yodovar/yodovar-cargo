@@ -5,9 +5,12 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { UserRole } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { randomInt, randomUUID } from 'crypto';
+import { generateUniqueClientCode } from '../common/client-code';
 import { PrismaService } from '../prisma/prisma.service';
+import { JwtRefreshPayload, type JwtAccessPayload } from './auth.types';
 import { parseTajikPhone } from './phone-tj';
 import { SmsService } from './sms.service';
 
@@ -75,17 +78,26 @@ export class AuthService {
     if (!user) {
       isNewUser = true;
       const passwordHash = await bcrypt.hash(randomUUID(), BCRYPT_ROUNDS);
+      const clientCode = await generateUniqueClientCode(this.prisma);
       user = await this.prisma.user.create({
         data: {
           phone,
           name: '',
           passwordHash,
+          role: UserRole.client,
+          clientCode,
         },
+      });
+    } else if (!user.clientCode) {
+      const clientCode = await generateUniqueClientCode(this.prisma);
+      user = await this.prisma.user.update({
+        where: { id: user.id },
+        data: { clientCode },
       });
     }
 
     await this.prisma.pendingOtp.delete({ where: { phone } });
-    const tokens = this.signPair(user.id);
+    const tokens = this.signPair(user.id, user.role);
     const profileName = user.name.trim();
     return {
       ...tokens,
@@ -145,7 +157,7 @@ export class AuthService {
       throw new UnauthorizedException('Сервер не настроен');
     }
     try {
-      const payload = this.jwt.verify<{ sub: string; typ?: string }>(
+      const payload = this.jwt.verify<JwtRefreshPayload>(
         refreshToken,
         { secret: refreshSecret },
       );
@@ -154,13 +166,44 @@ export class AuthService {
       const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
       if (!user) throw new UnauthorizedException();
 
-      return this.signPair(user.id);
+      return this.signPair(user.id, user.role);
     } catch {
       throw new UnauthorizedException('Сессия устарела, войдите снова');
     }
   }
 
-  private signPair(userId: string) {
+  async staffLogin(nameInput: string, password: string) {
+    const name = nameInput.trim();
+    if (name.length < 2) {
+      throw new BadRequestException('Имя слишком короткое');
+    }
+
+    const staffUsers = await this.prisma.user.findMany({
+      where: {
+        name,
+        role: { in: [UserRole.admin, UserRole.worker_cn, UserRole.worker_tj] },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+    if (staffUsers.length === 0) {
+      throw new UnauthorizedException('Неверные имя или пароль');
+    }
+    if (staffUsers.length > 1) {
+      throw new BadRequestException(
+        'Найдено несколько сотрудников с одинаковым именем. Переименуйте одного из них.',
+      );
+    }
+
+    const user = staffUsers[0];
+    const ok = await bcrypt.compare(password, user.passwordHash);
+    if (!ok) {
+      throw new UnauthorizedException('Неверные имя или пароль');
+    }
+
+    return this.signPair(user.id, user.role);
+  }
+
+  private signPair(userId: string, role: UserRole) {
     const accessSecret = process.env.JWT_SECRET;
     const refreshSecret = process.env.JWT_REFRESH_SECRET;
     if (!accessSecret || !refreshSecret) {
@@ -169,12 +212,15 @@ export class AuthService {
     const accessExpires = process.env.JWT_ACCESS_EXPIRES ?? '15m';
     const refreshExpires = process.env.JWT_REFRESH_EXPIRES ?? '30d';
 
-    const accessToken = this.jwt.sign(
-      { sub: userId },
-      { secret: accessSecret, expiresIn: accessExpires },
-    );
+    const accessPayload: JwtAccessPayload = { sub: userId, role };
+    const refreshPayload: JwtRefreshPayload = { sub: userId, role, typ: 'refresh' };
+
+    const accessToken = this.jwt.sign(accessPayload, {
+      secret: accessSecret,
+      expiresIn: accessExpires,
+    });
     const refreshToken = this.jwt.sign(
-      { sub: userId, typ: 'refresh' },
+      refreshPayload,
       { secret: refreshSecret, expiresIn: refreshExpires },
     );
 

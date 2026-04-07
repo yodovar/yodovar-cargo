@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-/// Фирменные цвета: красный + белый, минимализм.
+/// Фирменные цвета: оранжевый + белый, минимализм.
 abstract final class AppTheme {
-  static const Color brandRed = Color(0xFFE53935);
-  static const Color brandRedDark = Color(0xFFC62828);
+  static const Color brandRed = Color(0xFFFB8C00);
+  static const Color brandRedDark = Color(0xFFF57C00);
   static const Color surface = Color(0xFFFAFAFA);
 
   static ThemeData get light {

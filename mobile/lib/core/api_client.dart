@@ -25,6 +25,31 @@ final dioProvider = Provider<Dio>((ref) {
         }
         handler.next(options);
       },
+      onError: (error, handler) async {
+        final status = error.response?.statusCode;
+        final req = error.requestOptions;
+        final alreadyRetried = req.extra['retried'] == true;
+        final isRefreshCall = req.path.contains('/auth/refresh');
+        if (status == 401 && !alreadyRetried && !isRefreshCall) {
+          try {
+            await refreshSession(storage);
+            final newAccess = await storage.readAccess();
+            final cloned = req.copyWith(
+              headers: {
+                ...req.headers,
+                if (newAccess != null && newAccess.isNotEmpty)
+                  'Authorization': 'Bearer $newAccess',
+              },
+              extra: {...req.extra, 'retried': true},
+            );
+            final retryRes = await dio.fetch(cloned);
+            return handler.resolve(retryRes);
+          } catch (_) {
+            await storage.clear();
+          }
+        }
+        handler.next(error);
+      },
     ),
   );
 

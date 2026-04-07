@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/app_theme.dart';
 import '../auth/phone_auth_screen.dart';
 
 class WelcomeScreen extends StatefulWidget {
@@ -16,7 +17,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   final _pages = const [
     _OnboardingData(
       icon: Icons.waving_hand_rounded,
-      title: 'Добро пожаловать в Yodovar Cargo',
+      title: 'Добро пожаловать в Insof Cargo',
       body:
           'Начни покупать из Китая без посредников, предоплат и скрытых комиссий.',
       hint: 'Всё за 3 минуты',
@@ -81,10 +82,13 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     child: DecoratedBox(
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(24),
-                        gradient: const LinearGradient(
+                        gradient: LinearGradient(
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
-                          colors: [Color(0xFFFDECEC), Color(0xFFF7F8FA)],
+                          colors: [
+                            AppTheme.brandRed.withValues(alpha: 0.16),
+                            const Color(0xFFF7F8FA),
+                          ],
                         ),
                         border: Border.all(color: const Color(0xFFE9E9E9)),
                       ),
@@ -98,11 +102,11 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                 width: 98,
                                 height: 98,
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFE53935),
+                                  color: AppTheme.brandRed,
                                   borderRadius: BorderRadius.circular(28),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: const Color(0xFFE53935)
+                                      color: AppTheme.brandRed
                                           .withValues(alpha: 0.3),
                                       blurRadius: 22,
                                       offset: const Offset(0, 10),
@@ -156,9 +160,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   width: _index == i ? 24 : 8,
                   height: 8,
                   decoration: BoxDecoration(
-                    color: _index == i
-                        ? const Color(0xFFE53935)
-                        : Colors.grey.shade300,
+                    color: _index == i ? AppTheme.brandRed : Colors.grey.shade300,
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),

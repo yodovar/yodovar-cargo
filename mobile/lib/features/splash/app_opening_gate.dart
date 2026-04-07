@@ -175,11 +175,15 @@ class _OpeningSplashPage extends StatelessWidget {
                       child: Transform.scale(
                         scale: logoScale.value,
                         child: Container(
-                          width: 100,
-                          height: 100,
+                          width: MediaQuery.sizeOf(context).width * 0.9,
+                          constraints: const BoxConstraints(maxWidth: 460),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 18,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            shape: BoxShape.circle,
+                            borderRadius: BorderRadius.circular(22),
                             boxShadow: [
                               BoxShadow(
                                 color: Colors.black.withValues(alpha: 0.22),
@@ -188,10 +192,15 @@ class _OpeningSplashPage extends StatelessWidget {
                               ),
                             ],
                           ),
-                          child: const Icon(
-                            Icons.local_shipping_rounded,
-                            size: 52,
-                            color: AppTheme.brandRed,
+                          child: Image.asset(
+                            'assets/images/logo.png',
+                            height: MediaQuery.sizeOf(context).height * 0.28,
+                            fit: BoxFit.contain,
+                            errorBuilder: (_, __, ___) => const Icon(
+                              Icons.local_shipping_rounded,
+                              size: 52,
+                              color: AppTheme.brandRed,
+                            ),
                           ),
                         ),
                       ),
@@ -204,7 +213,7 @@ class _OpeningSplashPage extends StatelessWidget {
                         child: Column(
                           children: [
                             const Text(
-                              'YODOVAR',
+                              'INSOF',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.w900,

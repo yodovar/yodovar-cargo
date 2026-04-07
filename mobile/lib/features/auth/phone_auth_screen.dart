@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/app_theme.dart';
 import '../../core/app_messenger.dart';
 import '../../core/tj_phone.dart';
 import 'auth_repository.dart';
@@ -250,7 +251,7 @@ class _OtpBottomSheetState extends ConsumerState<_OtpBottomSheet> {
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: i == digits.length
-                            ? const Color(0xFFE53935)
+                            ? AppTheme.brandRed
                             : Colors.grey.shade300,
                         width: i == digits.length ? 2 : 1,
                       ),
