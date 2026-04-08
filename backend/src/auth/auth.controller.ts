@@ -1,4 +1,5 @@
-import { BadRequestException, Body, Controller, Post } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Post, Req } from '@nestjs/common';
+import { Request } from 'express';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
@@ -58,8 +59,12 @@ export class AuthController {
   }
 
   @Post('staff-login')
-  staffLogin(@Body() dto: StaffLoginDto) {
-    return this.auth.staffLogin(dto.name, dto.password);
+  staffLogin(@Req() req: Request, @Body() dto: StaffLoginDto) {
+    const source =
+      req.headers['x-forwarded-for']?.toString().split(',')[0]?.trim() ||
+      req.ip ||
+      'unknown';
+    return this.auth.staffLogin(dto.name, dto.password, source);
   }
 
   @Post('set-profile-name')

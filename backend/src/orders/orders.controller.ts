@@ -14,14 +14,31 @@ export class OrdersController {
 
   @Roles('client', 'worker_cn', 'worker_tj', 'admin')
   @Get('summary')
-  summary() {
-    return this.orders.summary();
+  summary(@Req() req: Request) {
+    const actor = req.user as RequestUser;
+    return this.orders.summary(actor.id, actor.role);
+  }
+
+  @Roles('client', 'worker_cn', 'worker_tj', 'admin')
+  @Get()
+  list(
+    @Req() req: Request,
+    @Query('status') status?: string,
+    @Query('take') take?: string,
+  ) {
+    const actor = req.user as RequestUser;
+    const parsedTake = Number.parseInt(String(take ?? '100'), 10);
+    return this.orders.list(actor.id, actor.role, {
+      status: status?.trim() || undefined,
+      take: Number.isFinite(parsedTake) ? parsedTake : 100,
+    });
   }
 
   @Roles('client', 'worker_cn', 'worker_tj', 'admin')
   @Get('search')
-  search(@Query('trackingCode') trackingCode?: string) {
-    return this.orders.findByTrackingCode(trackingCode ?? '');
+  search(@Req() req: Request, @Query('trackingCode') trackingCode?: string) {
+    const actor = req.user as RequestUser;
+    return this.orders.findByTrackingCode(actor.id, actor.role, trackingCode ?? '');
   }
 
   @Roles('worker_cn', 'worker_tj', 'admin')

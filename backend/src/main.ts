@@ -1,5 +1,6 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
@@ -11,10 +12,22 @@ async function bootstrap() {
       transform: true,
     }),
   );
+  app.use(helmet());
 
   const origins = process.env.CORS_ORIGINS?.trim();
+  const parsedOrigins = origins
+    ? origins
+        .split(',')
+        .map((o) => o.trim())
+        .filter((o) => o.length > 0)
+    : [];
   app.enableCors({
-    origin: origins ? origins.split(',').map((o) => o.trim()) : true,
+    origin:
+      parsedOrigins.length > 0
+        ? parsedOrigins
+        : process.env.NODE_ENV === 'production'
+          ? false
+          : true,
     credentials: true,
   });
 

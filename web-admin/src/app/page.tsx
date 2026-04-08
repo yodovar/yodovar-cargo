@@ -2,17 +2,31 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getAccessToken } from '@/lib/api';
+import { clearTokens, getAccessToken, refreshSession } from '@/lib/api';
 
 export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    if (getAccessToken()) {
-      router.replace('/dashboard');
-    } else {
-      router.replace('/login');
+    let cancelled = false;
+    async function resolveRoute() {
+      if (getAccessToken()) {
+        router.replace('/dashboard');
+        return;
+      }
+      const restored = await refreshSession();
+      if (cancelled) return;
+      if (restored) {
+        router.replace('/dashboard');
+      } else {
+        clearTokens();
+        router.replace('/login');
+      }
     }
+    void resolveRoute();
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
   return (

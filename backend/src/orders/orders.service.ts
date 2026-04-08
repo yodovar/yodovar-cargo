@@ -1,6 +1,9 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { AuditService } from '../audit/audit.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { AuthRole } from '../auth/auth.types';
+import { buildQrPayload } from '../common/client-code';
 
 type SeedOrder = {
   trackingCode: string;
@@ -34,14 +37,21 @@ export class OrdersService {
     private readonly audit: AuditService,
   ) {}
 
-  async summary() {
+  async summary(userId: string, role: AuthRole) {
     await this.ensureDefaults();
-    const allOrders = await this.prisma.order.findMany();
+    const where = await this.buildScopeWhere(userId, role);
+    const allOrders = await this.prisma.order.findMany({ where });
     const statusCount = (status: string) =>
       allOrders.filter((o) => o.status === status).length;
 
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { clientCode: true },
+    });
+
     return {
-      qrCode: 'SF4745',
+      qrCode: user?.clientCode ?? '-----',
+      qrPayload: user?.clientCode ? buildQrPayload(user.clientCode) : '',
       stats: {
         all: allOrders.length,
         receivedChina: statusCount('received_china'),
@@ -55,11 +65,39 @@ export class OrdersService {
     };
   }
 
-  async findByTrackingCode(input: string) {
+  async list(
+    userId: string,
+    role: AuthRole,
+    params: { status?: string; take: number },
+  ) {
+    await this.ensureDefaults();
+    const where: Prisma.OrderWhereInput = await this.buildScopeWhere(userId, role);
+    if (params.status) where.status = params.status;
+    const take = Math.min(Math.max(params.take, 1), 300);
+    const items = await this.prisma.order.findMany({
+      where,
+      take,
+      orderBy: { updatedAt: 'desc' },
+      select: {
+        id: true,
+        trackingCode: true,
+        status: true,
+        isPaid: true,
+        weightGrams: true,
+        createdAt: true,
+        updatedAt: true,
+        handedOverAt: true,
+      },
+    });
+    return { items };
+  }
+
+  async findByTrackingCode(userId: string, role: AuthRole, input: string) {
     await this.ensureDefaults();
     const trackingCode = input.trim().toUpperCase();
     if (trackingCode.length < 2) return { found: false as const };
-    const order = await this.prisma.order.findUnique({ where: { trackingCode } });
+    const scoped = await this.buildScopeWhere(userId, role);
+    const order = await this.prisma.order.findFirst({ where: { ...scoped, trackingCode } });
     if (!order) return { found: false as const };
     return {
       found: true as const,
@@ -106,5 +144,10 @@ export class OrdersService {
     await this.prisma.order.createMany({
       data: DEFAULT_ORDERS,
     });
+  }
+
+  private async buildScopeWhere(userId: string, role: AuthRole) {
+    if (role !== 'client') return {};
+    return { clientId: userId };
   }
 }

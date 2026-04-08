@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/api_client.dart';
 import '../../core/app_theme.dart';
 import '../auth/auth_session.dart';
 import 'home_screen.dart';
@@ -17,6 +18,30 @@ class MainShell extends ConsumerStatefulWidget {
 
 class _MainShellState extends ConsumerState<MainShell> {
   int _index = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncIdentity());
+  }
+
+  Future<void> _syncIdentity() async {
+    try {
+      final dio = ref.read(dioProvider);
+      final prefs = ref.read(userPrefsProvider);
+      final res = await dio.get<Map<String, dynamic>>('/me');
+      final d = res.data ?? const {};
+      final name = (d['name'] as String? ?? '').trim();
+      final phone = (d['phone'] as String? ?? '').trim();
+      final code = (d['clientCode'] as String? ?? '').trim().toUpperCase();
+      if (name.isNotEmpty) await prefs.setDisplayName(name);
+      if (phone.isNotEmpty) await prefs.setPhone(phone);
+      if (code.isNotEmpty) await prefs.setClientCode(code);
+      if (mounted) setState(() {});
+    } catch (_) {
+      // Не блокируем UI, если сервер временно недоступен.
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

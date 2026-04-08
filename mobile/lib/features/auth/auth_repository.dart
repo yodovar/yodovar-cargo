@@ -21,6 +21,18 @@ class VerifyOtpResult {
   final String profileName;
 }
 
+class MyIdentity {
+  const MyIdentity({
+    required this.name,
+    required this.phone,
+    required this.clientCode,
+  });
+
+  final String name;
+  final String phone;
+  final String clientCode;
+}
+
 class AuthRepository {
   AuthRepository({required this.dio, required this.storage});
 
@@ -102,6 +114,16 @@ class AuthRepository {
       throw const FormatException('В ответе нет токенов');
     }
     await storage.writeTokens(accessToken: access, refreshToken: refresh);
+  }
+
+  Future<MyIdentity> fetchMyIdentity() async {
+    final res = await dio.get<Map<String, dynamic>>('/me');
+    final d = res.data ?? const {};
+    return MyIdentity(
+      name: (d['name'] as String? ?? '').trim(),
+      phone: (d['phone'] as String? ?? '').trim(),
+      clientCode: (d['clientCode'] as String? ?? '').trim().toUpperCase(),
+    );
   }
 }
 

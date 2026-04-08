@@ -1,9 +1,11 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../../core/app_theme.dart';
 import '../auth/auth_session.dart';
@@ -34,12 +36,25 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
   }
 
   Future<void> _loadAvatar() async {
-    final base64 = await ref.read(userPrefsProvider).readAvatarBase64();
-    if (base64 != null && base64.isNotEmpty) {
+    final prefs = ref.read(userPrefsProvider);
+    final path = await prefs.readAvatarPath();
+    if (path != null && path.isNotEmpty) {
       try {
-        _avatarBytes = base64Decode(base64);
+        final f = File(path);
+        if (await f.exists()) {
+          _avatarBytes = await f.readAsBytes();
+        }
       } catch (_) {
         _avatarBytes = null;
+      }
+    } else {
+      final base64 = await prefs.readAvatarBase64();
+      if (base64 != null && base64.isNotEmpty) {
+        try {
+          _avatarBytes = base64Decode(base64);
+        } catch (_) {
+          _avatarBytes = null;
+        }
       }
     }
     if (mounted) setState(() => _loadingAvatar = false);
@@ -56,16 +71,47 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
       );
       if (file == null) return;
       final bytes = await file.readAsBytes();
-      await ref.read(userPrefsProvider).setAvatarBase64(base64Encode(bytes));
+      final docsDir = await getApplicationDocumentsDirectory();
+      final avatarFile = File('${docsDir.path}/profile_avatar.jpg');
+      await avatarFile.writeAsBytes(bytes, flush: true);
+      final prefs = ref.read(userPrefsProvider);
+      await prefs.setAvatarPath(avatarFile.path);
+      // Legacy fallback key clean-up to avoid stale oversized values.
+      await prefs.clearAvatarBase64();
       if (!mounted) return;
       setState(() => _avatarBytes = bytes);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Фото профиля обновлено'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Не удалось загрузить фото: $e'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     } finally {
       if (mounted) setState(() => _savingAvatar = false);
     }
   }
 
   Future<void> _removeAvatar() async {
-    await ref.read(userPrefsProvider).clearAvatarBase64();
+    final prefs = ref.read(userPrefsProvider);
+    final path = await prefs.readAvatarPath();
+    if (path != null && path.isNotEmpty) {
+      try {
+        final f = File(path);
+        if (await f.exists()) await f.delete();
+      } catch (_) {
+        // ignore
+      }
+    }
+    await prefs.clearAvatarPath();
+    await prefs.clearAvatarBase64();
     if (mounted) setState(() => _avatarBytes = null);
   }
 

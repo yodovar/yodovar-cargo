@@ -1,7 +1,7 @@
-import { API_BASE } from './config';
+import { getApiBase } from './config';
 
 function baseUrl() {
-  return API_BASE.replace(/\/$/, '');
+  return getApiBase();
 }
 
 export function getAccessToken(): string | null {
@@ -23,6 +23,7 @@ export async function apiFetch<T = unknown>(
   path: string,
   init: RequestInit = {},
 ): Promise<T> {
+  const requestUrl = `${baseUrl()}${path.startsWith('/') ? path : `/${path}`}`;
   const headers = new Headers(init.headers);
   if (!headers.has('Content-Type') && init.body && !(init.body instanceof FormData)) {
     headers.set('Content-Type', 'application/json');
@@ -30,15 +31,46 @@ export async function apiFetch<T = unknown>(
   const token = getAccessToken();
   if (token) headers.set('Authorization', `Bearer ${token}`);
 
-  const res = await fetch(`${baseUrl()}${path.startsWith('/') ? path : `/${path}`}`, {
-    ...init,
-    headers,
-  });
+  async function doRequest(requestHeaders: Headers) {
+    try {
+      return await fetch(requestUrl, {
+        ...init,
+        headers: requestHeaders,
+      });
+    } catch {
+      throw new Error(
+        'Не удалось подключиться к API. Проверьте, что backend запущен и доступен по сети.',
+      );
+    }
+  }
+
+  let res: Response;
+  res = await doRequest(headers);
+
+  if (res.status === 401) {
+    const isRefreshCall = path === '/auth/refresh' || path.endsWith('/auth/refresh');
+    if (!isRefreshCall) {
+      const refreshed = await refreshSession();
+      if (refreshed) {
+        const retriedHeaders = new Headers(init.headers);
+        if (
+          !retriedHeaders.has('Content-Type') &&
+          init.body &&
+          !(init.body instanceof FormData)
+        ) {
+          retriedHeaders.set('Content-Type', 'application/json');
+        }
+        const nextToken = getAccessToken();
+        if (nextToken) retriedHeaders.set('Authorization', `Bearer ${nextToken}`);
+        res = await doRequest(retriedHeaders);
+      }
+    }
+  }
 
   if (res.status === 401) {
     clearTokens();
     if (typeof window !== 'undefined') window.location.href = '/login';
-    throw new Error('Не авторизован');
+    throw new Error('Сессия истекла. Войдите снова.');
   }
 
   const text = await res.text();
@@ -62,6 +94,7 @@ export async function apiFetch<T = unknown>(
 }
 
 export async function refreshSession(): Promise<boolean> {
+  if (typeof window === 'undefined') return false;
   const refresh = localStorage.getItem('refreshToken');
   if (!refresh) return false;
   try {

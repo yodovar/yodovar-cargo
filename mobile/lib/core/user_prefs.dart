@@ -2,7 +2,9 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 const _kDisplayName = 'user_display_name';
 const _kPhone = 'user_phone';
+const _kClientCode = 'user_client_code';
 const _kAvatarBase64 = 'user_avatar_base64';
+const _kAvatarPath = 'user_avatar_path';
 const _kPickupCityId = 'pickup_city_id';
 
 /// Локальные предпочтения пользователя (имя/номер/аватар/выбранный пункт выдачи).
@@ -28,12 +30,28 @@ class UserPrefs {
 
   Future<String?> readPhone() => _s.read(key: _kPhone);
 
+  Future<void> setClientCode(String code) async {
+    final c = code.trim().toUpperCase();
+    if (c.isEmpty) return;
+    await _s.write(key: _kClientCode, value: c);
+  }
+
+  Future<String?> readClientCode() => _s.read(key: _kClientCode);
+
   Future<void> setAvatarBase64(String base64) async {
     if (base64.trim().isEmpty) return;
     await _s.write(key: _kAvatarBase64, value: base64);
   }
 
   Future<String?> readAvatarBase64() => _s.read(key: _kAvatarBase64);
+
+  Future<void> setAvatarPath(String path) async {
+    final p = path.trim();
+    if (p.isEmpty) return;
+    await _s.write(key: _kAvatarPath, value: p);
+  }
+
+  Future<String?> readAvatarPath() => _s.read(key: _kAvatarPath);
 
   Future<void> setPickupCityId(String cityId) async {
     await _s.write(key: _kPickupCityId, value: cityId);
@@ -45,7 +63,11 @@ class UserPrefs {
 
   Future<void> clearPhone() => _s.delete(key: _kPhone);
 
+  Future<void> clearClientCode() => _s.delete(key: _kClientCode);
+
   Future<void> clearAvatarBase64() => _s.delete(key: _kAvatarBase64);
+
+  Future<void> clearAvatarPath() => _s.delete(key: _kAvatarPath);
 
   Future<void> clearPickupCityId() => _s.delete(key: _kPickupCityId);
 }

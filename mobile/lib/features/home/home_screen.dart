@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:convert';
+import 'dart:io';
 
 import '../../core/app_theme.dart';
 import '../../core/pickup_points.dart';
@@ -18,6 +20,8 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   String? _name;
   String? _phone;
+  String? _clientCode;
+  Uint8List? _avatarBytes;
   String _pickupCityId = pickupPoints.first.id;
   final _trackCtrl = TextEditingController();
 
@@ -30,11 +34,35 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadProfile() async {
     final n = await widget.prefs.readDisplayName();
     final p = await widget.prefs.readPhone();
+    final code = await widget.prefs.readClientCode();
+    Uint8List? avatarBytes;
+    final avatarPath = await widget.prefs.readAvatarPath();
+    if (avatarPath != null && avatarPath.isNotEmpty) {
+      try {
+        final f = File(avatarPath);
+        if (await f.exists()) {
+          avatarBytes = await f.readAsBytes();
+        }
+      } catch (_) {
+        avatarBytes = null;
+      }
+    } else {
+      final avatarBase64 = await widget.prefs.readAvatarBase64();
+      if (avatarBase64 != null && avatarBase64.isNotEmpty) {
+        try {
+          avatarBytes = base64Decode(avatarBase64);
+        } catch (_) {
+          avatarBytes = null;
+        }
+      }
+    }
     final cityId = await widget.prefs.readPickupCityId();
     if (!mounted) return;
     setState(() {
       _name = n;
       _phone = p;
+      _clientCode = code;
+      _avatarBytes = avatarBytes;
       if (cityId != null && pickupPoints.any((e) => e.id == cityId)) {
         _pickupCityId = cityId;
       }
@@ -50,65 +78,129 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final greeting = (_name != null && _name!.isNotEmpty)
-        ? 'Добро пожаловать, $_name!'
-        : 'Добро пожаловать!';
-
-    final topInset = MediaQuery.paddingOf(context).top;
     return ColoredBox(
       color: const Color(0xFFF2F4F7),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _RedHeaderBar(topInset: topInset),
-          Expanded(
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
-              child: Column(
-                // stretch: иначе Row+Expanded в _TrackCard получают неограниченную ширину (Web).
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    greeting,
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: const Color(0xFF1A1D21),
-                      letterSpacing: -0.3,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Отслеживайте посылки и управляйте заказами в одном месте.',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: Colors.grey.shade700,
-                      height: 1.4,
-                    ),
-                  ),
-                  const SizedBox(height: 22),
-                  _QuickGrid(),
-                  const SizedBox(height: 16),
-                  _SelectedAddressCard(
-                    cityId: _pickupCityId,
-                    userName: _name ?? '',
-                    userPhone: _phone ?? '',
-                  ),
-                  const SizedBox(height: 20),
-                  _TrackCard(controller: _trackCtrl),
-                  const SizedBox(height: 20),
-                  Text(
-                    'Мои отправления',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF1A1D21),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  _ShipmentPreviewCard(),
-                  const SizedBox(height: 100),
+      child: SafeArea(
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+          child: Column(
+            // stretch: иначе Row+Expanded в _TrackCard получают неограниченную ширину (Web).
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _ClientHeaderCard(
+                name: (_name ?? '').trim().isEmpty ? 'Пользователь' : _name!.trim(),
+                clientCode: (_clientCode ?? '').trim().isEmpty
+                    ? '-----'
+                    : _clientCode!.trim().toUpperCase(),
+                avatarBytes: _avatarBytes,
+              ),
+              const SizedBox(height: 14),
+              const _OrderStatusesShowcase(
+                statuses: [
+                  _OrderStatusChipData(label: 'Получено в Китае', count: 2),
+                  _OrderStatusChipData(label: 'В пути', count: 1),
+                  _OrderStatusChipData(label: 'Сортировка', count: 0),
+                  _OrderStatusChipData(label: 'Готово к выдаче', count: 1),
                 ],
               ),
+              const SizedBox(height: 8),
+              _QuickGrid(),
+              const SizedBox(height: 16),
+              _SelectedAddressCard(
+                cityId: _pickupCityId,
+                userName: _name ?? '',
+                userPhone: _phone ?? '',
+              ),
+              const SizedBox(height: 20),
+              _TrackCard(controller: _trackCtrl),
+              const SizedBox(height: 20),
+              Text(
+                'Мои отправления',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF1A1D21),
+                ),
+              ),
+              const SizedBox(height: 12),
+              _ShipmentPreviewCard(),
+              const SizedBox(height: 100),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ClientHeaderCard extends StatelessWidget {
+  const _ClientHeaderCard({
+    required this.name,
+    required this.clientCode,
+    required this.avatarBytes,
+  });
+
+  final String name;
+  final String clientCode;
+  final Uint8List? avatarBytes;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 30,
+            backgroundColor: AppTheme.brandRed.withValues(alpha: 0.15),
+            backgroundImage: avatarBytes != null ? MemoryImage(avatarBytes!) : null,
+            child: avatarBytes == null
+                ? const Icon(Icons.person_rounded, color: AppTheme.brandRed, size: 30)
+                : null,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF1A1D21),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  clientCode,
+                  style: const TextStyle(
+                    color: AppTheme.brandRed,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.7,
+                    fontSize: 15,
+                  ),
+                ),
+              ],
             ),
+          ),
+          IconButton(
+            onPressed: () {},
+            icon: const Icon(Icons.notifications_none_rounded),
           ),
         ],
       ),
@@ -116,127 +208,194 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class _RedHeaderBar extends StatelessWidget {
-  const _RedHeaderBar({required this.topInset});
+class _OrderStatusChipData {
+  const _OrderStatusChipData({required this.label, required this.count});
+  final String label;
+  final int count;
+}
 
-  final double topInset;
+class _OrderStatusesShowcase extends StatelessWidget {
+  const _OrderStatusesShowcase({required this.statuses});
+
+  final List<_OrderStatusChipData> statuses;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: Container(
-        width: double.infinity,
-        padding: EdgeInsets.fromLTRB(12, 8 + topInset, 12, 14),
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              AppTheme.brandRed,
-              AppTheme.brandRedDark,
-            ],
-          ),
+    final total = statuses.fold<int>(0, (sum, s) => sum + s.count);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFFFA726), Color(0xFFF57C00)],
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              children: [
-                Material(
-                  color: Colors.white.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(12),
-                  child: InkWell(
-                    onTap: () {},
-                    borderRadius: BorderRadius.circular(12),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 8,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.14),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Статусы заказов',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+              fontSize: 18,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Всего активных: $total',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.9),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 10),
+          _OrderStatusCarousel(statuses: statuses),
+        ],
+      ),
+    );
+  }
+}
+
+class _OrderStatusCarousel extends StatefulWidget {
+  const _OrderStatusCarousel({required this.statuses});
+
+  final List<_OrderStatusChipData> statuses;
+
+  @override
+  State<_OrderStatusCarousel> createState() => _OrderStatusCarouselState();
+}
+
+class _OrderStatusCarouselState extends State<_OrderStatusCarousel> {
+  late final PageController _controller;
+  int _currentPage = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = PageController(viewportFraction: 0.92);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final statuses = widget.statuses;
+    if (statuses.isEmpty) {
+      return const Text(
+        'Статусов пока нет',
+        style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          height: 126,
+          child: PageView.builder(
+            controller: _controller,
+            itemCount: statuses.length,
+            onPageChanged: (i) => setState(() => _currentPage = i),
+            itemBuilder: (context, index) {
+              final s = statuses[index];
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.28)),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.18),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
+                        ),
+                        child: const Icon(
+                          Icons.local_shipping_rounded,
+                          color: Colors.white,
+                          size: 26,
+                        ),
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.location_on_rounded,
-                            color: Colors.white.withValues(alpha: 0.95),
-                            size: 20,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Душанбе',
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.95),
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              s.label,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 15,
+                                height: 1.2,
+                              ),
                             ),
-                          ),
-                          Icon(
-                            Icons.keyboard_arrow_down_rounded,
-                            color: Colors.white.withValues(alpha: 0.9),
-                            size: 20,
-                          ),
-                        ],
+                            const SizedBox(height: 8),
+                            Text(
+                              'Заказов: ${s.count}',
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.95),
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
+                      const Icon(Icons.chevron_right_rounded, color: Colors.white70),
+                    ],
                   ),
                 ),
-                const Spacer(),
-                Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    IconButton(
-                      onPressed: () {},
-                      icon: Icon(
-                        Icons.notifications_outlined,
-                        color: Colors.white.withValues(alpha: 0.95),
-                        size: 26,
-                      ),
-                    ),
-                    Positioned(
-                      right: 6,
-                      top: 6,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 5,
-                          vertical: 2,
-                        ),
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                        ),
-                        constraints: const BoxConstraints(
-                          minWidth: 18,
-                          minHeight: 18,
-                        ),
-                        child: const Text(
-                          '3',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: AppTheme.brandRed,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Text(
-              'INSOF CARGO',
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.98),
-                fontWeight: FontWeight.w800,
-                fontSize: 15,
-                letterSpacing: 1.2,
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: List.generate(
+            statuses.length,
+            (i) => AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              margin: const EdgeInsets.only(right: 6),
+              width: _currentPage == i ? 18 : 7,
+              height: 7,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(999),
+                color: _currentPage == i
+                    ? Colors.white
+                    : Colors.white.withValues(alpha: 0.38),
               ),
             ),
-          ],
+          ),
         ),
-      ),
+      ],
     );
   }
 }

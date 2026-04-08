@@ -16,6 +16,11 @@ import { SmsService } from './sms.service';
 
 const BCRYPT_ROUNDS = 10;
 const OTP_TTL_MS = 10 * 60 * 1000;
+const RATE_WINDOW_MS = 10 * 60 * 1000;
+const RATE_BLOCK_MS = 15 * 60 * 1000;
+const MAX_REQUEST_OTP_ATTEMPTS = 6;
+const MAX_VERIFY_OTP_ATTEMPTS = 8;
+const MAX_STAFF_LOGIN_ATTEMPTS = 7;
 
 function generateSixDigitCode(): string {
   const fixed = process.env.OTP_DEV_CODE?.trim();
@@ -27,6 +32,11 @@ function generateSixDigitCode(): string {
 
 @Injectable()
 export class AuthService {
+  private readonly limiter = new Map<
+    string,
+    { count: number; windowStart: number; blockedUntil?: number }
+  >();
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
@@ -35,6 +45,7 @@ export class AuthService {
 
   async requestOtp(phoneInput: string) {
     const phone = parseTajikPhone(phoneInput);
+    this.consumeRateLimit(`otp:request:${phone}`, MAX_REQUEST_OTP_ATTEMPTS);
     const code = generateSixDigitCode();
     const otpHash = await bcrypt.hash(code, BCRYPT_ROUNDS);
     const expiresAt = new Date(Date.now() + OTP_TTL_MS);
@@ -60,6 +71,7 @@ export class AuthService {
 
   async verifyOtp(phoneInput: string, code: string) {
     const phone = parseTajikPhone(phoneInput);
+    this.consumeRateLimit(`otp:verify:${phone}`, MAX_VERIFY_OTP_ATTEMPTS);
     const pending = await this.prisma.pendingOtp.findUnique({ where: { phone } });
     if (!pending) {
       throw new NotFoundException('Код не запрошен. Получите SMS-код снова.');
@@ -118,9 +130,14 @@ export class AuthService {
       throw new NotFoundException('Пользователь не найден');
     }
 
+    const data: { name: string; clientCode?: string } = { name };
+    if (!user.clientCode) {
+      data.clientCode = await generateUniqueClientCode(this.prisma);
+    }
+
     await this.prisma.user.update({
       where: { phone },
-      data: { name },
+      data,
     });
 
     return { ok: true as const };
@@ -172,11 +189,15 @@ export class AuthService {
     }
   }
 
-  async staffLogin(nameInput: string, password: string) {
+  async staffLogin(nameInput: string, password: string, source = 'unknown') {
     const name = nameInput.trim();
     if (name.length < 2) {
       throw new BadRequestException('Имя слишком короткое');
     }
+    this.consumeRateLimit(
+      `staff:login:${name.toLowerCase()}:${source}`,
+      MAX_STAFF_LOGIN_ATTEMPTS,
+    );
 
     const staffUsers = await this.prisma.user.findMany({
       where: {
@@ -225,5 +246,32 @@ export class AuthService {
     );
 
     return { accessToken, refreshToken };
+  }
+
+  private consumeRateLimit(key: string, maxAttempts: number) {
+    const now = Date.now();
+    const current = this.limiter.get(key);
+
+    if (!current) {
+      this.limiter.set(key, { count: 1, windowStart: now });
+      return;
+    }
+
+    if (current.blockedUntil && now < current.blockedUntil) {
+      throw new UnauthorizedException('Слишком много попыток. Попробуйте позже.');
+    }
+
+    if (now - current.windowStart > RATE_WINDOW_MS) {
+      this.limiter.set(key, { count: 1, windowStart: now });
+      return;
+    }
+
+    current.count += 1;
+    if (current.count > maxAttempts) {
+      current.blockedUntil = now + RATE_BLOCK_MS;
+      throw new UnauthorizedException('Слишком много попыток. Попробуйте позже.');
+    }
+
+    this.limiter.set(key, current);
   }
 }

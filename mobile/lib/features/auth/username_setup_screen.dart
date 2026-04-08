@@ -33,7 +33,22 @@ class _UsernameSetupScreenState extends ConsumerState<UsernameSetupScreen> {
           phone: widget.phone,
           name: name,
         );
-    await ref.read(userPrefsProvider).setDisplayName(name);
+    final prefs = ref.read(userPrefsProvider);
+    await prefs.setDisplayName(name);
+    try {
+      final me = await ref.read(authRepositoryProvider).fetchMyIdentity();
+      if (me.clientCode.isNotEmpty) {
+        await prefs.setClientCode(me.clientCode);
+      }
+      if (me.phone.isNotEmpty) {
+        await prefs.setPhone(me.phone);
+      }
+      if (me.name.isNotEmpty) {
+        await prefs.setDisplayName(me.name);
+      }
+    } catch (_) {
+      // Пользователь всё равно должен продолжить, даже если /me не ответил.
+    }
     await ref.read(authSessionProvider.notifier).markSignedIn();
     if (!mounted) return;
     Navigator.of(context, rootNavigator: true).popUntil((r) => r.isFirst);

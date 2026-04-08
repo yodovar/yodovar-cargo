@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:convert';
+import 'dart:io';
 
 import '../../core/app_theme.dart';
 import '../../core/user_prefs.dart';
@@ -18,11 +21,13 @@ class ProfileScreen extends ConsumerWidget {
     return ColoredBox(
       color: const Color(0xFFF2F4F7),
       child: SafeArea(
-        child: FutureBuilder<(String, String)>(
+        child: FutureBuilder<(String, String, String, Uint8List?)>(
           future: _loadProfile(prefs),
           builder: (context, snap) {
             final name = snap.data?.$1 ?? 'Пользователь';
             final phone = snap.data?.$2 ?? '+992';
+            final clientCode = snap.data?.$3 ?? '';
+            final avatarBytes = snap.data?.$4;
 
             return ListView(
               padding: const EdgeInsets.all(20),
@@ -37,6 +42,8 @@ class ProfileScreen extends ConsumerWidget {
                 _MergedDataCard(
                   name: name,
                   phone: phone,
+                  clientCode: clientCode,
+                  avatarBytes: avatarBytes,
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute<void>(
@@ -121,12 +128,36 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  static Future<(String, String)> _loadProfile(UserPrefs prefs) async {
+  static Future<(String, String, String, Uint8List?)> _loadProfile(UserPrefs prefs) async {
     final n = (await prefs.readDisplayName())?.trim();
     final p = (await prefs.readPhone())?.trim();
+    final c = (await prefs.readClientCode())?.trim().toUpperCase();
+    Uint8List? avatarBytes;
+    final avatarPath = await prefs.readAvatarPath();
+    if (avatarPath != null && avatarPath.isNotEmpty) {
+      try {
+        final f = File(avatarPath);
+        if (await f.exists()) {
+          avatarBytes = await f.readAsBytes();
+        }
+      } catch (_) {
+        avatarBytes = null;
+      }
+    } else {
+      final avatarBase64 = await prefs.readAvatarBase64();
+      if (avatarBase64 != null && avatarBase64.isNotEmpty) {
+        try {
+          avatarBytes = base64Decode(avatarBase64);
+        } catch (_) {
+          avatarBytes = null;
+        }
+      }
+    }
     return (
       (n == null || n.isEmpty) ? 'Пользователь' : n,
       (p == null || p.isEmpty) ? '+992' : p,
+      c ?? '',
+      avatarBytes,
     );
   }
 
@@ -144,11 +175,15 @@ class _MergedDataCard extends StatelessWidget {
   const _MergedDataCard({
     required this.name,
     required this.phone,
+    required this.clientCode,
+    required this.avatarBytes,
     required this.onTap,
   });
 
   final String name;
   final String phone;
+  final String clientCode;
+  final Uint8List? avatarBytes;
   final VoidCallback onTap;
 
   @override
@@ -175,10 +210,13 @@ class _MergedDataCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const CircleAvatar(
+            CircleAvatar(
               radius: 24,
               backgroundColor: Colors.white,
-              child: Icon(Icons.person_rounded, color: AppTheme.brandRed),
+              backgroundImage: avatarBytes != null ? MemoryImage(avatarBytes!) : null,
+              child: avatarBytes == null
+                  ? const Icon(Icons.person_rounded, color: AppTheme.brandRed)
+                  : null,
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -200,6 +238,32 @@ class _MergedDataCard extends StatelessWidget {
                       color: Colors.white.withValues(alpha: 0.9),
                     ),
                   ),
+                  if (clientCode.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Text(
+                          'Код: $clientCode',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () async {
+                            await Clipboard.setData(ClipboardData(text: clientCode));
+                          },
+                          child: Icon(
+                            Icons.copy_rounded,
+                            size: 16,
+                            color: Colors.white.withValues(alpha: 0.95),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),

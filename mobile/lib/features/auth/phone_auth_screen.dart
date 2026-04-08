@@ -154,6 +154,20 @@ class _OtpBottomSheetState extends ConsumerState<_OtpBottomSheet> {
       if (result.profileName.isNotEmpty) {
         await prefs.setDisplayName(result.profileName);
       }
+      try {
+        final me = await ref.read(authRepositoryProvider).fetchMyIdentity();
+        if (me.name.isNotEmpty) {
+          await prefs.setDisplayName(me.name);
+        }
+        if (me.phone.isNotEmpty) {
+          await prefs.setPhone(me.phone);
+        }
+        if (me.clientCode.isNotEmpty) {
+          await prefs.setClientCode(me.clientCode);
+        }
+      } catch (_) {
+        // Не блокируем вход, если /me временно недоступен.
+      }
 
       if (result.needsProfileName) {
         if (!mounted) return;

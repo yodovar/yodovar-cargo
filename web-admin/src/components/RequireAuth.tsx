@@ -2,18 +2,44 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { getAccessToken } from '@/lib/api';
+import { apiFetch, clearTokens, getAccessToken, refreshSession } from '@/lib/api';
 
 export function RequireAuth({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    if (!getAccessToken()) {
-      router.replace('/login');
-      return;
+    let cancelled = false;
+    async function checkAuth() {
+      const token = getAccessToken();
+      if (!token) {
+        router.replace('/login');
+        return;
+      }
+
+      try {
+        await apiFetch<{ role: string }>('/me');
+        if (!cancelled) setReady(true);
+      } catch {
+        const restored = await refreshSession();
+        if (!restored) {
+          clearTokens();
+          router.replace('/login');
+          return;
+        }
+        try {
+          await apiFetch<{ role: string }>('/me');
+          if (!cancelled) setReady(true);
+        } catch {
+          clearTokens();
+          router.replace('/login');
+        }
+      }
     }
-    setReady(true);
+    void checkAuth();
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
   if (!ready) {
