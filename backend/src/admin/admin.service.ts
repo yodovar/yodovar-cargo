@@ -5,17 +5,20 @@ import {
 } from '@nestjs/common';
 import { Prisma, UserRole } from '@prisma/client';
 import { AuditService } from '../audit/audit.service';
+import { PushService } from '../notifications/push.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateSupportContactDto } from './dto/create-support-contact.dto';
 import { CreateTariffDto } from './dto/create-tariff.dto';
 import { UpdateSupportContactDto } from './dto/update-support-contact.dto';
 import { UpdateTariffDto } from './dto/update-tariff.dto';
+import { CreateChannelPostDto } from './dto/create-channel-post.dto';
 
 @Injectable()
 export class AdminService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly push: PushService,
   ) {}
 
   async listUsers(params: {
@@ -244,5 +247,94 @@ export class AdminService {
       orderBy: { createdAt: 'desc' },
       take: Math.min(Math.max(limit, 1), 500),
     });
+  }
+
+  async listChannelPosts(takeRaw?: number) {
+    const take = Math.min(200, Math.max(1, Number(takeRaw ?? 80) || 80));
+    const posts = await this.prisma.channelPost.findMany({
+      orderBy: { createdAt: 'desc' },
+      take,
+      include: {
+        author: { select: { id: true, name: true, role: true } },
+      },
+    });
+    const ids = posts.map((p) => p.id);
+    if (ids.length === 0) return { items: [] };
+
+    const [reactions, views] = await Promise.all([
+      this.prisma.channelPostReaction.findMany({
+        where: { postId: { in: ids } },
+        select: { postId: true, emoji: true },
+      }),
+      this.prisma.channelPostView.groupBy({
+        by: ['postId'],
+        where: { postId: { in: ids } },
+        _count: { _all: true },
+      }),
+    ]);
+
+    const reactionMap = new Map<string, Map<string, number>>();
+    for (const r of reactions) {
+      const byEmoji = reactionMap.get(r.postId) ?? new Map<string, number>();
+      byEmoji.set(r.emoji, (byEmoji.get(r.emoji) ?? 0) + 1);
+      reactionMap.set(r.postId, byEmoji);
+    }
+    const viewMap = new Map<string, number>();
+    for (const v of views) {
+      viewMap.set(v.postId, v._count._all);
+    }
+
+    return {
+      items: posts.map((p) => ({
+        id: p.id,
+        body: p.body,
+        createdAt: p.createdAt,
+        updatedAt: p.updatedAt,
+        author: p.author,
+        views: viewMap.get(p.id) ?? 0,
+        reactions: Array.from((reactionMap.get(p.id) ?? new Map()).entries()).map(
+          ([emoji, count]) => ({ emoji, count }),
+        ),
+      })),
+    };
+  }
+
+  async createChannelPost(actorId: string, dto: CreateChannelPostDto) {
+    const body = dto.body.trim();
+    if (!body) {
+      throw new BadRequestException('Текст сообщения обязателен');
+    }
+    const created = await this.prisma.channelPost.create({
+      data: {
+        body,
+        authorId: actorId,
+      },
+    });
+    await this.audit.log({
+      actorId,
+      action: 'channel.post.created',
+      entityType: 'channel_post',
+      entityId: created.id,
+      before: null,
+      after: created,
+    });
+    const clients = await this.prisma.user.findMany({
+      where: { role: 'client' },
+      select: { id: true },
+    });
+    const snippet = body.length > 120 ? `${body.slice(0, 117)}...` : body;
+    await Promise.all(
+      clients.map((u) =>
+        this.push.sendToUser(u.id, {
+          title: 'Новый пост в канале',
+          body: snippet,
+          data: {
+            type: 'channel_post',
+            postId: created.id,
+          },
+        }),
+      ),
+    );
+    return { ...created, pushTargets: clients.length };
   }
 }

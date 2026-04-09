@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../core/api_client.dart';
+import 'tracking_search_screen.dart';
 
 final ordersSummaryProvider = FutureProvider<OrdersSummaryData>((ref) async {
   final dio = ref.read(dioProvider);
@@ -13,21 +14,22 @@ final ordersSummaryProvider = FutureProvider<OrdersSummaryData>((ref) async {
 
 final ordersListProvider =
     FutureProvider.family<OrderListData, String?>((ref, statusKey) async {
-      final dio = ref.read(dioProvider);
-      final q = <String, dynamic>{'take': 100};
-      final apiStatus = mapStatusKeyToApi(statusKey);
-      if (apiStatus != null && apiStatus.isNotEmpty) {
-        q['status'] = apiStatus;
-      }
-      final res = await dio.get<Map<String, dynamic>>('/orders', queryParameters: q);
-      final data = OrderListData.fromJson(res.data ?? const {});
-      if (statusKey == 'unpaid') {
-        return OrderListData(
-          items: data.items.where((e) => !e.isPaid).toList(growable: false),
-        );
-      }
-      return data;
-    });
+  final dio = ref.read(dioProvider);
+  final q = <String, dynamic>{'take': 100};
+  final apiStatus = mapStatusKeyToApi(statusKey);
+  if (apiStatus != null && apiStatus.isNotEmpty) {
+    q['status'] = apiStatus;
+  }
+  final res =
+      await dio.get<Map<String, dynamic>>('/orders', queryParameters: q);
+  final data = OrderListData.fromJson(res.data ?? const {});
+  if (statusKey == 'unpaid') {
+    return OrderListData(
+      items: data.items.where((e) => !e.isPaid).toList(growable: false),
+    );
+  }
+  return data;
+});
 
 class OrdersScreen extends ConsumerStatefulWidget {
   const OrdersScreen({super.key});
@@ -37,64 +39,30 @@ class OrdersScreen extends ConsumerStatefulWidget {
 }
 
 class _OrdersScreenState extends ConsumerState<OrdersScreen> {
-  final TextEditingController _trackingController = TextEditingController();
-  bool _searching = false;
-
-  @override
-  void dispose() {
-    _trackingController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _searchTracking() async {
-    final code = _trackingController.text.trim();
-    if (code.isEmpty) return;
-    setState(() => _searching = true);
-    try {
-      final dio = ref.read(dioProvider);
-      final res = await dio.get<Map<String, dynamic>>(
-        '/orders/search',
-        queryParameters: {'trackingCode': code},
-      );
-      final found = res.data?['found'] == true;
-      final message = found
-          ? 'Трек ${res.data?['trackingCode']} найден. Статус: ${_statusLabel(res.data?['status'] as String? ?? '')}'
-          : 'По трек-коду ничего не найдено';
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
-        );
-      }
-    } on DioException {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Ошибка поиска. Проверьте связь с сервером.'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _searching = false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final summary = ref.watch(ordersSummaryProvider);
+    final showBack = Navigator.of(context).canPop();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF2F4F7),
+      appBar: showBack
+          ? AppBar(
+              title: const Text('Заказы'),
+              backgroundColor: Colors.transparent,
+            )
+          : null,
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
           children: [
-            Text(
-              'Заказы',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
-            ),
+            if (!showBack)
+              Text(
+                'Заказы',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+              ),
             const SizedBox(height: 4),
             Text(
               'Видите только свои заказы: трек-коды, статусы и время приёмки.',
@@ -168,13 +136,13 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
               iconColor: const Color(0xFFE35A64),
               title: 'Поиск по трек-коду',
               subtitle: 'Проверьте свой заказ',
-              onTap: () {},
-            ),
-            const SizedBox(height: 12),
-            _TrackSearchBar(
-              controller: _trackingController,
-              searching: _searching,
-              onSubmit: _searchTracking,
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const TrackingSearchScreen(),
+                  ),
+                );
+              },
             ),
           ],
         ),
@@ -495,7 +463,8 @@ class _OrderStatusCard extends StatelessWidget {
                 ),
                 const Spacer(),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: item.color.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(999),
@@ -571,7 +540,8 @@ class _ActionRowCard extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w700),
                   ),
                   Text(subtitle, style: TextStyle(color: Colors.grey.shade600)),
                 ],
@@ -586,7 +556,8 @@ class _ActionRowCard extends StatelessWidget {
 }
 
 class ClientQrPage extends StatelessWidget {
-  const ClientQrPage({super.key, required this.qrCode, required this.qrPayload});
+  const ClientQrPage(
+      {super.key, required this.qrCode, required this.qrPayload});
 
   final String qrCode;
   final String qrPayload;
@@ -655,7 +626,8 @@ class _OrderModernCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final weightKg = ((order.weightGrams ?? 0) / 1000).toStringAsFixed(1);
-    final priceTjs = ((order.weightGrams ?? 0) / 1000 * 27.2).toStringAsFixed(2);
+    final priceTjs =
+        ((order.weightGrams ?? 0) / 1000 * 27.2).toStringAsFixed(2);
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(18),
@@ -675,7 +647,8 @@ class _OrderModernCard extends StatelessWidget {
                 color: const Color(0xFFFFF3E0),
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: const Icon(Icons.inventory_2_rounded, color: Color(0xFFF57C00), size: 34),
+              child: const Icon(Icons.inventory_2_rounded,
+                  color: Color(0xFFF57C00), size: 34),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -686,7 +659,8 @@ class _OrderModernCard extends StatelessWidget {
                     order.trackingCode,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w800),
+                    style: const TextStyle(
+                        fontSize: 15.5, fontWeight: FontWeight.w800),
                   ),
                   const SizedBox(height: 2),
                   Text(
@@ -738,17 +712,18 @@ class _OrderModernCard extends StatelessWidget {
   }
 }
 
-class _OrderDetailsSheet extends StatelessWidget {
+class _OrderDetailsSheet extends ConsumerWidget {
   const _OrderDetailsSheet({required this.order});
 
   final OrderRowItem order;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final steps = _buildTimeline(order);
     final weightKg = ((order.weightGrams ?? 0) / 1000).toStringAsFixed(1);
     final volume = ((order.weightGrams ?? 0) / 1000000).toStringAsFixed(3);
-    final priceTjs = ((order.weightGrams ?? 0) / 1000 * 27.2).toStringAsFixed(2);
+    final priceTjs =
+        ((order.weightGrams ?? 0) / 1000 * 27.2).toStringAsFixed(2);
     return DraggableScrollableSheet(
       initialChildSize: 0.76,
       minChildSize: 0.48,
@@ -784,7 +759,8 @@ class _OrderDetailsSheet extends StatelessWidget {
               children: [
                 Text(
                   'Трек-код',
-                  style: TextStyle(color: Colors.grey.shade500, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                      color: Colors.grey.shade500, fontWeight: FontWeight.w600),
                 ),
                 const Spacer(),
                 IconButton(
@@ -802,21 +778,49 @@ class _OrderDetailsSheet extends StatelessWidget {
             ),
             if (!order.isPaid) ...[
               const SizedBox(height: 4),
-              const Text('Не оплачено', style: TextStyle(color: Color(0xFFD84315), fontWeight: FontWeight.w700)),
+              const Text('Не оплачено',
+                  style: TextStyle(
+                      color: Color(0xFFD84315), fontWeight: FontWeight.w700)),
               const SizedBox(height: 8),
               FilledButton(
-                onPressed: () {},
+                onPressed: () async {
+                  try {
+                    final dio = ref.read(dioProvider);
+                    final res =
+                        await dio.get<Map<String, dynamic>>('/orders/summary');
+                    final data =
+                        OrdersSummaryData.fromJson(res.data ?? const {});
+                    if (!context.mounted) return;
+                    await Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => ClientQrPage(
+                          qrCode: data.qrCode,
+                          qrPayload: data.qrPayload,
+                        ),
+                      ),
+                    );
+                  } on DioException {
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Не удалось загрузить QR-код'),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  }
+                },
                 style: FilledButton.styleFrom(
                   backgroundColor: const Color(0xFFFF9800),
                   foregroundColor: Colors.white,
                 ),
-                child: const Text('Оплатить'),
+                child: const Text('Мой QR-код'),
               ),
             ],
             const SizedBox(height: 10),
             const Divider(height: 1),
             const SizedBox(height: 12),
-            const Text('Детали заказа', style: TextStyle(fontWeight: FontWeight.w700)),
+            const Text('Детали заказа',
+                style: TextStyle(fontWeight: FontWeight.w700)),
             const SizedBox(height: 10),
             Row(
               children: [
@@ -852,7 +856,8 @@ class _DetailMiniCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+            Text(label,
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
             const SizedBox(height: 2),
             Text(value, style: const TextStyle(fontWeight: FontWeight.w700)),
           ],
@@ -892,7 +897,9 @@ class _TimelineStepRow extends StatelessWidget {
                 width: 22,
                 height: 22,
                 decoration: BoxDecoration(
-                  color: active ? activeColor.withValues(alpha: 0.15) : const Color(0xFFF3F3F5),
+                  color: active
+                      ? activeColor.withValues(alpha: 0.15)
+                      : const Color(0xFFF3F3F5),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -905,7 +912,8 @@ class _TimelineStepRow extends StatelessWidget {
                 Container(
                   width: 2,
                   height: 28,
-                  color: active ? activeColor.withValues(alpha: 0.45) : offColor,
+                  color:
+                      active ? activeColor.withValues(alpha: 0.45) : offColor,
                 ),
             ],
           ),
@@ -922,16 +930,19 @@ class _TimelineStepRow extends StatelessWidget {
                       title,
                       style: TextStyle(
                         fontWeight: FontWeight.w800,
-                        color: active ? const Color(0xFF1A1D21) : Colors.grey.shade500,
+                        color: active
+                            ? const Color(0xFF1A1D21)
+                            : Colors.grey.shade500,
                       ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   Text(
                     timeText,
                     style: TextStyle(
-                      color: active ? Colors.grey.shade700 : Colors.grey.shade400,
+                      color:
+                          active ? Colors.grey.shade700 : Colors.grey.shade400,
                       fontWeight: FontWeight.w600,
                       fontSize: 12,
                     ),
@@ -948,77 +959,6 @@ class _TimelineStepRow extends StatelessWidget {
                 ),
               ),
             ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _TrackSearchBar extends StatelessWidget {
-  const _TrackSearchBar({
-    required this.controller,
-    required this.searching,
-    required this.onSubmit,
-  });
-
-  final TextEditingController controller;
-  final bool searching;
-  final VoidCallback onSubmit;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Container(
-            height: 50,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.search_rounded, color: Colors.grey.shade500),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TextField(
-                    controller: controller,
-                    textInputAction: TextInputAction.search,
-                    onSubmitted: (_) => onSubmit(),
-                    decoration: InputDecoration(
-                      hintText: 'Введите трек-код',
-                      border: InputBorder.none,
-                      isCollapsed: true,
-                      hintStyle: TextStyle(color: Colors.grey.shade500),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(width: 10),
-        InkWell(
-          onTap: searching ? null : onSubmit,
-          borderRadius: BorderRadius.circular(14),
-          child: Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              color: const Color(0xFF1EB980),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: searching
-                ? const Padding(
-                    padding: EdgeInsets.all(14),
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  )
-                : const Icon(Icons.send_rounded, color: Colors.white),
           ),
         ),
       ],
@@ -1087,7 +1027,9 @@ List<Widget> _buildTimeline(OrderRowItem order) {
     final pair = stepTitles[key]!;
     final active = i <= currentRank;
     final showLine = i != stepKeys.length - 1;
-    final time = active ? _formatDate(i <= 1 ? order.createdAt : order.updatedAt) : 'Ожидается';
+    final time = active
+        ? _formatDate(i <= 1 ? order.createdAt : order.updatedAt)
+        : 'Ожидается';
     list.add(
       _TimelineStepRow(
         active: active,
@@ -1124,4 +1066,3 @@ String? mapStatusKeyToApi(String? key) {
       return null;
   }
 }
-

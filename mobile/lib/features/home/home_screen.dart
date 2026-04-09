@@ -6,10 +6,16 @@ import 'dart:io';
 
 import '../../core/app_theme.dart';
 import '../../core/pickup_points.dart';
+import '../../core/responsive.dart';
 import '../../core/profile_avatar_display.dart';
 import '../../core/profile_avatar_url.dart';
 import '../auth/auth_session.dart';
 import 'notifications_page.dart';
+import 'orders_screen.dart';
+import 'pickup_points_screen.dart';
+import 'support_screen.dart';
+import 'tariffs_screen.dart';
+import 'tracking_search_screen.dart';
 
 /// Главная для клиента: быстрые действия, трекинг, список отправлений (пока макет).
 class HomeScreen extends ConsumerStatefulWidget {
@@ -26,17 +32,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Uint8List? _avatarBytes;
   String? _avatarNetworkUrl;
   String _pickupCityId = pickupPoints.first.id;
-  final _trackCtrl = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _loadProfile();
-    ref.listenManual<int>(profileAvatarRevisionProvider, (previous, next) {
-      if (previous != next) {
-        _loadProfile();
-      }
-    });
   }
 
   Future<void> _loadProfile() async {
@@ -85,77 +85,75 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   @override
-  void dispose() {
-    _trackCtrl.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    // Запускаем авто-обновление источника уведомлений, даже если страница
-    // уведомлений не открыта: бейдж должен обновляться сам.
-    ref.watch(notificationsTickProvider);
-    final theme = Theme.of(context);
+    // listen только из build — иначе listenManual в initState без отписки даёт
+    // «dependent is not a descendant» в InheritedElement.notifyClients.
+    ref.listen<int>(profileAvatarRevisionProvider, (previous, next) {
+      if (previous != next) {
+        _loadProfile();
+      }
+    });
     final unreadNotifications =
         ref.watch(unreadOrderNotificationsCountProvider).valueOrNull ?? 0;
     return ColoredBox(
       color: const Color(0xFFF2F4F7),
       child: SafeArea(
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-          child: Column(
-            // stretch: иначе Row+Expanded в _TrackCard получают неограниченную ширину (Web).
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _ClientHeaderCard(
-                name: (_name ?? '').trim().isEmpty ? 'Пользователь' : _name!.trim(),
-                clientCode: (_clientCode ?? '').trim().isEmpty
-                    ? '-----'
-                    : _clientCode!.trim().toUpperCase(),
-                avatarBytes: _avatarBytes,
-                avatarNetworkUrl: _avatarNetworkUrl,
-                unreadNotifications: unreadNotifications,
-                onNotificationsTap: () async {
-                  await Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => const NotificationsPage(),
-                    ),
-                  );
-                  ref.invalidate(unreadOrderNotificationsCountProvider);
-                },
-              ),
-              const SizedBox(height: 14),
-              const _OrderStatusesShowcase(
-                statuses: [
-                  _OrderStatusChipData(label: 'Получено в Китае', count: 2),
-                  _OrderStatusChipData(label: 'В пути', count: 1),
-                  _OrderStatusChipData(label: 'Сортировка', count: 0),
-                  _OrderStatusChipData(label: 'Готово к выдаче', count: 1),
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: contentMaxWidth(context)),
+              child: Column(
+                // stretch: иначе Row+Expanded в _TrackCard получают неограниченную ширину (Web).
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _ClientHeaderCard(
+                    name: (_name ?? '').trim().isEmpty
+                        ? 'Пользователь'
+                        : _name!.trim(),
+                    clientCode: (_clientCode ?? '').trim().isEmpty
+                        ? '-----'
+                        : _clientCode!.trim().toUpperCase(),
+                    avatarBytes: _avatarBytes,
+                    avatarNetworkUrl: _avatarNetworkUrl,
+                    unreadNotifications: unreadNotifications,
+                    onNotificationsTap: () async {
+                      await Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const NotificationsPage(),
+                        ),
+                      );
+                      ref.invalidate(unreadOrderNotificationsCountProvider);
+                    },
+                  ),
+                  const SizedBox(height: 14),
+                  const _OrderStatusesShowcase(
+                    statuses: [
+                      _OrderStatusChipData(label: 'Получено в Китае', count: 2),
+                      _OrderStatusChipData(label: 'В пути', count: 1),
+                      _OrderStatusChipData(label: 'Сортировка', count: 0),
+                      _OrderStatusChipData(label: 'Готово к выдаче', count: 1),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  _QuickGrid(
+                    userName: _name ?? '',
+                    userPhone: _phone ?? '',
+                  ),
+                  const SizedBox(height: 16),
+                  _SelectedAddressCard(
+                    cityId: _pickupCityId,
+                    userName: _name ?? '',
+                    userPhone: _phone ?? '',
+                  ),
+                  const SizedBox(height: 20),
+                  const _TrackCard(),
+                  const SizedBox(height: 100),
                 ],
               ),
-              const SizedBox(height: 8),
-              _QuickGrid(),
-              const SizedBox(height: 16),
-              _SelectedAddressCard(
-                cityId: _pickupCityId,
-                userName: _name ?? '',
-                userPhone: _phone ?? '',
-              ),
-              const SizedBox(height: 20),
-              _TrackCard(controller: _trackCtrl),
-              const SizedBox(height: 20),
-              Text(
-                'Мои отправления',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF1A1D21),
-                ),
-              ),
-              const SizedBox(height: 12),
-              _ShipmentPreviewCard(),
-              const SizedBox(height: 100),
-            ],
+            ),
           ),
         ),
       ),
@@ -231,37 +229,49 @@ class _ClientHeaderCard extends StatelessWidget {
               ],
             ),
           ),
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              IconButton(
-                onPressed: onNotificationsTap,
-                icon: const Icon(Icons.notifications_none_rounded),
-              ),
-              if (unreadNotifications > 0)
-                Positioned(
-                  right: 7,
-                  top: 7,
-                  child: Container(
-                    constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE53935),
-                      borderRadius: BorderRadius.circular(99),
-                    ),
-                    child: Center(
-                      child: Text(
-                        unreadNotifications > 99 ? '99+' : '$unreadNotifications',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800,
+          InkWell(
+            onTap: onNotificationsTap,
+            borderRadius: BorderRadius.circular(99),
+            child: SizedBox(
+              width: 48,
+              height: 48,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  const Center(
+                    child: Icon(Icons.notifications_none_rounded),
+                  ),
+                  if (unreadNotifications > 0)
+                    Positioned(
+                      right: 4,
+                      top: 6,
+                      child: IgnorePointer(
+                        child: Container(
+                          constraints:
+                              const BoxConstraints(minWidth: 18, minHeight: 18),
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE53935),
+                            borderRadius: BorderRadius.circular(99),
+                          ),
+                          child: Center(
+                            child: Text(
+                              unreadNotifications > 99
+                                  ? '99+'
+                                  : '$unreadNotifications',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ),
-            ],
+                ],
+              ),
+            ),
           ),
         ],
       ),
@@ -337,19 +347,91 @@ class _OrderStatusCarousel extends StatefulWidget {
 }
 
 class _OrderStatusCarouselState extends State<_OrderStatusCarousel> {
-  late final PageController _controller;
   int _currentPage = 0;
+  int? _pendingCarouselIndex;
+  bool _carouselFrameScheduled = false;
 
-  @override
-  void initState() {
-    super.initState();
-    _controller = PageController(viewportFraction: 0.92);
+  void _setCarouselPageDeferred(int i) {
+    if (i == _currentPage) {
+      return;
+    }
+    _pendingCarouselIndex = i;
+    if (_carouselFrameScheduled) {
+      return;
+    }
+    _carouselFrameScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _carouselFrameScheduled = false;
+      if (!mounted) {
+        return;
+      }
+      final target = _pendingCarouselIndex;
+      if (target == null || target == _currentPage) {
+        return;
+      }
+      _pendingCarouselIndex = null;
+      setState(() => _currentPage = target);
+    });
   }
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
+  Widget _statusCard(_OrderStatusChipData s) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.28)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.18),
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
+            ),
+            child: const Icon(
+              Icons.local_shipping_rounded,
+              color: Colors.white,
+              size: 26,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  s.label,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 15,
+                    height: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Заказов: ${s.count}',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.95),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_right_rounded, color: Colors.white70),
+        ],
+      ),
+    );
   }
 
   @override
@@ -365,103 +447,82 @@ class _OrderStatusCarouselState extends State<_OrderStatusCarousel> {
       );
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          height: 126,
-          child: PageView.builder(
-            controller: _controller,
-            itemCount: statuses.length,
-            onPageChanged: (i) => setState(() => _currentPage = i),
-            itemBuilder: (context, index) {
-              final s = statuses[index];
-              return Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: Container(
-                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.28)),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.18),
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
-                        ),
-                        child: const Icon(
-                          Icons.local_shipping_rounded,
-                          color: Colors.white,
-                          size: 26,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              s.label,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w800,
-                                fontSize: 15,
-                                height: 1.2,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Заказов: ${s.count}',
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.95),
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Icon(Icons.chevron_right_rounded, color: Colors.white70),
-                    ],
-                  ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final rawW = constraints.maxWidth;
+        final viewportW = (!rawW.isFinite || rawW < 80)
+            ? MediaQuery.sizeOf(context).width
+            : rawW;
+        const sep = 10.0;
+        final cardW = statusCarouselCardWidth(viewportW);
+        final stride = cardW + sep;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              height: 132,
+              width: viewportW,
+              child: NotificationListener<ScrollNotification>(
+                onNotification: (n) {
+                  if (n.metrics.axis != Axis.horizontal) {
+                    return false;
+                  }
+                  final i = (n.metrics.pixels / stride)
+                      .round()
+                      .clamp(0, statuses.length - 1);
+                  // Синхронный setState здесь на desktop/web даёт рекурсию в MouseTracker.
+                  _setCarouselPageDeferred(i);
+                  return false;
+                },
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  itemCount: statuses.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: sep),
+                  itemBuilder: (context, index) {
+                    return SizedBox(
+                      width: cardW,
+                      child: _statusCard(statuses[index]),
+                    );
+                  },
                 ),
-              );
-            },
-          ),
-        ),
-        const SizedBox(height: 10),
-        Row(
-          children: List.generate(
-            statuses.length,
-            (i) => AnimatedContainer(
-              duration: const Duration(milliseconds: 220),
-              margin: const EdgeInsets.only(right: 6),
-              width: _currentPage == i ? 18 : 7,
-              height: 7,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(999),
-                color: _currentPage == i
-                    ? Colors.white
-                    : Colors.white.withValues(alpha: 0.38),
               ),
             ),
-          ),
-        ),
-      ],
+            const SizedBox(height: 10),
+            Row(
+              children: List.generate(
+                statuses.length,
+                (i) => AnimatedContainer(
+                  duration: const Duration(milliseconds: 220),
+                  margin: const EdgeInsets.only(right: 6),
+                  width: _currentPage == i ? 18 : 7,
+                  height: 7,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(999),
+                    color: _currentPage == i
+                        ? Colors.white
+                        : Colors.white.withValues(alpha: 0.38),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
 
 class _QuickGrid extends StatelessWidget {
+  const _QuickGrid({
+    required this.userName,
+    required this.userPhone,
+  });
+
+  final String userName;
+  final String userPhone;
+
   @override
   Widget build(BuildContext context) {
     final items = [
@@ -469,34 +530,68 @@ class _QuickGrid extends StatelessWidget {
         Icons.qr_code_scanner_rounded,
         'Адрес склада',
         'QR и текст для Китая',
+        () {
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => PickupPointsScreen(
+                userName: userName.trim().isEmpty ? 'Пользователь' : userName,
+                userPhone: userPhone.trim().isEmpty ? '+992' : userPhone,
+              ),
+            ),
+          );
+        },
       ),
       (
         Icons.inventory_2_rounded,
         'Мои заказы',
         'Статусы посылок',
+        () {
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => const OrdersScreen(),
+            ),
+          );
+        },
       ),
       (
         Icons.local_offer_rounded,
         'Тарифы',
         'Цены и условия',
+        () {
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => const TariffsScreen(),
+            ),
+          );
+        },
       ),
       (
         Icons.support_agent_rounded,
         'Поддержка',
         'Помощь 24/7',
+        () {
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => const SupportScreen(),
+            ),
+          );
+        },
       ),
     ];
 
+    final w = MediaQuery.sizeOf(context).width;
+    final crossCount = w >= 900 ? 4 : (w >= 600 ? 3 : 2);
+
     return GridView.count(
-      crossAxisCount: 2,
+      crossAxisCount: crossCount,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       mainAxisSpacing: 12,
       crossAxisSpacing: 12,
       childAspectRatio: 1.05,
       children: [
-        for (final (icon, title, sub) in items)
-          _QuickTile(icon: icon, title: title, subtitle: sub),
+        for (final (icon, title, sub, onTap) in items)
+          _QuickTile(icon: icon, title: title, subtitle: sub, onTap: onTap),
       ],
     );
   }
@@ -507,11 +602,13 @@ class _QuickTile extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.subtitle,
+    required this.onTap,
   });
 
   final IconData icon;
   final String title;
   final String subtitle;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -521,7 +618,7 @@ class _QuickTile extends StatelessWidget {
       elevation: 0,
       shadowColor: Colors.black26,
       child: InkWell(
-        onTap: () {},
+        onTap: onTap,
         borderRadius: BorderRadius.circular(18),
         child: Ink(
           decoration: BoxDecoration(
@@ -614,7 +711,8 @@ class _SelectedAddressCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.store_mall_directory_outlined, color: AppTheme.brandRed),
+              const Icon(Icons.store_mall_directory_outlined,
+                  color: AppTheme.brandRed),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -651,9 +749,7 @@ class _SelectedAddressCard extends StatelessWidget {
 }
 
 class _TrackCard extends StatelessWidget {
-  const _TrackCard({required this.controller});
-
-  final TextEditingController controller;
+  const _TrackCard();
 
   @override
   Widget build(BuildContext context) {
@@ -675,156 +771,53 @@ class _TrackCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'Отследить посылку',
+            'Поиск по трек-коду',
             textAlign: TextAlign.start,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w700,
                 ),
           ),
-          const SizedBox(height: 14),
-          LayoutBuilder(
-            builder: (context, c) {
-              final screenW = MediaQuery.sizeOf(context).width;
-              final w = c.maxWidth.isFinite ? c.maxWidth : screenW;
-              final field = TextField(
-                controller: controller,
-                decoration: InputDecoration(
-                  hintText: 'Трек-номер',
-                  prefixIcon: Icon(
-                    Icons.search_rounded,
-                    color: Colors.grey.shade500,
-                  ),
-                  filled: true,
-                  fillColor: const Color(0xFFF2F4F7),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 14,
-                  ),
+          const SizedBox(height: 8),
+          Text(
+            'Нажмите, чтобы открыть страницу поиска и найти свой заказ.',
+            style: TextStyle(color: Colors.grey.shade700),
+          ),
+          const SizedBox(height: 12),
+          InkWell(
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const TrackingSearchScreen(),
                 ),
-              );
-              final btn = FilledButton(
-                onPressed: () {},
-                style: FilledButton.styleFrom(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-                child: const Text('Найти'),
-              );
-              // Row+Expanded без конечной ширины ломает Web (unbounded width).
-              if (w >= 400) {
-                return SizedBox(
-                  width: w,
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Expanded(child: field),
-                      const SizedBox(width: 10),
-                      btn,
-                    ],
-                  ),
-                );
-              }
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  field,
-                  const SizedBox(height: 12),
-                  Align(
-                    alignment: AlignmentDirectional.centerEnd,
-                    child: btn,
-                  ),
-                ],
               );
             },
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ShipmentPreviewCard extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppTheme.brandRed.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Icon(
-              Icons.local_shipping_rounded,
-              color: AppTheme.brandRed,
-              size: 28,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '#983472615',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.2,
+            borderRadius: BorderRadius.circular(14),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF3E0),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFFFE0B2)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.travel_explore_rounded,
+                    color: Color(0xFFF57C00),
+                  ),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Text(
+                      'Открыть поиск по трек-коду',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1A1D21),
                       ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Статус: на складе в Китае',
-                  style: TextStyle(
-                    color: Colors.grey.shade700,
-                    fontSize: 13,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '2,5 кг  ·  \$12.50',
-                  style: TextStyle(
-                    color: Colors.grey.shade600,
-                    fontSize: 13,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: AppTheme.brandRed.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: const Text(
-              'В пути',
-              style: TextStyle(
-                color: AppTheme.brandRed,
-                fontWeight: FontWeight.w700,
-                fontSize: 12,
+                  Icon(Icons.chevron_right_rounded,
+                      color: Colors.grey.shade700),
+                ],
               ),
             ),
           ),

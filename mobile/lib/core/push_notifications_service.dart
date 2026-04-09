@@ -30,6 +30,7 @@ class PushNotificationsService {
       FlutterLocalNotificationsPlugin();
   static bool _initialized = false;
   static bool _available = false;
+  static final ValueNotifier<int> channelPostRevision = ValueNotifier<int>(0);
 
   static Future<void> init() async {
     if (_initialized) return;
@@ -72,6 +73,9 @@ class PushNotificationsService {
     FirebaseMessaging.onMessage.listen((message) async {
       await _showLocalNotification(message);
       HapticFeedback.mediumImpact();
+      if (message.data['type'] == 'channel_post') {
+        channelPostRevision.value = channelPostRevision.value + 1;
+      }
     });
   }
 
@@ -86,7 +90,9 @@ class PushNotificationsService {
         '/me/device-token',
         data: {
           'token': token,
-          'platform': Platform.isIOS ? 'ios' : (Platform.isAndroid ? 'android' : 'other'),
+          'platform': Platform.isIOS
+              ? 'ios'
+              : (Platform.isAndroid ? 'android' : 'other'),
         },
       );
     } catch (e) {
@@ -108,9 +114,8 @@ class PushNotificationsService {
       playSound: true,
       sound: RawResourceAndroidNotificationSound(_customSoundBase),
     );
-    final androidImpl =
-        _local.resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
+    final androidImpl = _local.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
     await androidImpl?.createNotificationChannel(channel);
   }
 

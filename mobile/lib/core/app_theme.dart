@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 /// Фирменные цвета: оранжевый + белый, минимализм.
 abstract final class AppTheme {
@@ -17,6 +18,8 @@ abstract final class AppTheme {
       useMaterial3: true,
       colorScheme: scheme,
       scaffoldBackgroundColor: surface,
+      textTheme: GoogleFonts.notoSansTextTheme(),
+      primaryTextTheme: GoogleFonts.notoSansTextTheme(),
       appBarTheme: const AppBarTheme(
         centerTitle: true,
         elevation: 0,
@@ -29,7 +32,8 @@ abstract final class AppTheme {
           backgroundColor: brandRed,
           foregroundColor: Colors.white,
           minimumSize: const Size.fromHeight(54),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
       ),
@@ -38,7 +42,8 @@ abstract final class AppTheme {
           foregroundColor: brandRed,
           minimumSize: const Size.fromHeight(54),
           side: const BorderSide(color: brandRed, width: 2),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
       ),

@@ -13,6 +13,7 @@ const links = [
   { href: '/sorting', label: 'Сортировка' },
   { href: '/ready-pickup', label: 'Готово к выдаче' },
   { href: '/orders', label: 'Заказы' },
+  { href: '/channels', label: 'Канал' },
   { href: '/users', label: 'Пользователи' },
   { href: '/tariffs', label: 'Тарифы' },
   { href: '/contacts', label: 'Контакты' },

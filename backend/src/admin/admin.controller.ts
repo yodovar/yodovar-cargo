@@ -18,6 +18,7 @@ import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { CreateSupportContactDto } from './dto/create-support-contact.dto';
 import { CreateTariffDto } from './dto/create-tariff.dto';
+import { CreateChannelPostDto } from './dto/create-channel-post.dto';
 import { UpdateSupportContactDto } from './dto/update-support-contact.dto';
 import { UpdateTariffDto } from './dto/update-tariff.dto';
 import { UpdateUserRoleDto } from './dto/update-user-role.dto';
@@ -114,5 +115,17 @@ export class AdminController {
   audit(@Query('limit') limit?: string) {
     const parsed = Number(limit ?? '100');
     return this.admin.listAudit(Number.isFinite(parsed) ? parsed : 100);
+  }
+
+  @Get('channel-posts')
+  listChannelPosts(@Query('take') takeRaw?: string) {
+    const take = Number.parseInt(String(takeRaw ?? '80'), 10);
+    return this.admin.listChannelPosts(Number.isFinite(take) ? take : 80);
+  }
+
+  @Post('channel-posts')
+  createChannelPost(@Req() req: Request, @Body() dto: CreateChannelPostDto) {
+    const actor = req.user as RequestUser;
+    return this.admin.createChannelPost(actor.id, dto);
   }
 }
