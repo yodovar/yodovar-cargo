@@ -8,6 +8,7 @@ const _kAvatarPath = 'user_avatar_path';
 const _kAvatarRemotePath = 'user_avatar_remote_path';
 const _kAvatarRemoteVer = 'user_avatar_remote_ver';
 const _kPickupCityId = 'pickup_city_id';
+const _kNotificationsSeenAtMs = 'notifications_seen_at_ms';
 
 /// Локальные предпочтения пользователя (имя/номер/аватар/выбранный пункт выдачи).
 class UserPrefs {
@@ -84,6 +85,17 @@ class UserPrefs {
 
   Future<String?> readPickupCityId() => _s.read(key: _kPickupCityId);
 
+  Future<void> setNotificationsSeenAtMs(int ms) =>
+      _s.write(key: _kNotificationsSeenAtMs, value: '$ms');
+
+  Future<int?> readNotificationsSeenAtMs() async {
+    final v = await _s.read(key: _kNotificationsSeenAtMs);
+    return int.tryParse(v ?? '');
+  }
+
+  Future<void> markNotificationsSeenNow() =>
+      setNotificationsSeenAtMs(DateTime.now().millisecondsSinceEpoch);
+
   Future<void> clearDisplayName() => _s.delete(key: _kDisplayName);
 
   Future<void> clearPhone() => _s.delete(key: _kPhone);
@@ -95,6 +107,9 @@ class UserPrefs {
   Future<void> clearAvatarPath() => _s.delete(key: _kAvatarPath);
 
   Future<void> clearPickupCityId() => _s.delete(key: _kPickupCityId);
+
+  Future<void> clearNotificationsSeenAtMs() =>
+      _s.delete(key: _kNotificationsSeenAtMs);
 
   Future<void> clearAllAvatarLocal() async {
     await clearAvatarBase64();

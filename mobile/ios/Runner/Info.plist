@@ -63,6 +63,10 @@
 	<string>Сканирование штрихкода с трек-номером посылки.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Выбор фото для аватара профиля.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>

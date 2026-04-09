@@ -1,9 +1,11 @@
 import {
+  Body,
   BadRequestException,
   Controller,
   Delete,
   Get,
   Post,
+  Query,
   Req,
   UploadedFile,
   UseGuards,
@@ -18,11 +20,15 @@ import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { avatarMulterOptions } from './avatar-upload.config';
 import { MeService } from './me.service';
+import { PushService } from '../notifications/push.service';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('me')
 export class MeController {
-  constructor(private readonly meService: MeService) {}
+  constructor(
+    private readonly meService: MeService,
+    private readonly push: PushService,
+  ) {}
 
   /**
    * Уникальный код клиента и строка для QR (приложение рисует QR из qrPayload).
@@ -32,6 +38,17 @@ export class MeController {
   profile(@Req() req: Request) {
     const user = req.user as RequestUser;
     return this.meService.getIdentity(user.id);
+  }
+
+  @Roles('client', 'worker_cn', 'worker_tj', 'admin')
+  @Get('notifications')
+  notifications(@Req() req: Request, @Query('take') takeRaw?: string) {
+    const user = req.user as RequestUser;
+    const take = Number(takeRaw ?? 120);
+    return this.meService.listNotifications(
+      user.id,
+      Number.isFinite(take) ? take : 120,
+    );
   }
 
   /** Загрузка фото профиля (multipart field `file`). */
@@ -51,5 +68,23 @@ export class MeController {
   removeAvatar(@Req() req: Request) {
     const user = req.user as RequestUser;
     return this.meService.removeAvatar(user.id);
+  }
+
+  @Roles('client', 'worker_cn', 'worker_tj', 'admin')
+  @Post('device-token')
+  registerDeviceToken(
+    @Req() req: Request,
+    @Body() body: { token?: string; platform?: string },
+  ) {
+    const user = req.user as RequestUser;
+    const token = body?.token?.trim();
+    if (!token) {
+      throw new BadRequestException('token обязателен');
+    }
+    return this.push.registerDeviceToken(
+      user.id,
+      token,
+      body?.platform ?? 'unknown',
+    );
   }
 }

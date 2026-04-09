@@ -27,6 +27,33 @@ model User {
   avatarUpdatedAt DateTime?
   createdAt    DateTime @default(now())
   orders       Order[]
+  pushTokens   DevicePushToken[]
+  notifications OrderStatusNotification[]
+}
+
+model DevicePushToken {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  platform  String
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model OrderStatusNotification {
+  id           String   @id @default(uuid())
+  userId       String
+  orderId      String
+  trackingCode String
+  status       String
+  title        String
+  body         String
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, orderId, status])
+  @@index([userId, createdAt])
 }
 
 /// Временная запись до подтверждения OTP (регистрация).

@@ -4,6 +4,7 @@ import { AuditService } from '../audit/audit.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthRole } from '../auth/auth.types';
 import { buildQrPayload } from '../common/client-code';
+import { PushService } from '../notifications/push.service';
 
 type SeedOrder = {
   trackingCode: string;
@@ -35,6 +36,7 @@ export class OrdersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly push: PushService,
   ) {}
 
   async summary(userId: string, role: AuthRole) {
@@ -135,6 +137,14 @@ export class OrdersService {
       before: { status: existing.status },
       after: { status: updated.status },
     });
+    if (existing.clientId && existing.status !== updated.status) {
+      await this.push.sendOrderStatusChanged(
+        existing.clientId,
+        existing.id,
+        updated.trackingCode,
+        updated.status,
+      );
+    }
     return updated;
   }
 

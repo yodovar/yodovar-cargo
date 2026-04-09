@@ -8,7 +8,10 @@ import { clearTokens } from '@/lib/api';
 const links = [
   { href: '/dashboard', label: 'Дашборд' },
   { href: '/qr-scan', label: 'QR сканирование' },
-  { href: '/intake', label: 'Добавление товаров' },
+  { href: '/intake', label: 'Принято в Китае' },
+  { href: '/in-transit', label: 'В пути' },
+  { href: '/sorting', label: 'Сортировка' },
+  { href: '/ready-pickup', label: 'Готово к выдаче' },
   { href: '/orders', label: 'Заказы' },
   { href: '/users', label: 'Пользователи' },
   { href: '/tariffs', label: 'Тарифы' },

@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 import { AuditService } from '../audit/audit.service';
+import { PushService } from '../notifications/push.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { WAREHOUSE_CN_STATUSES } from './warehouse.constants';
 import { CnIntakeDto } from './dto/cn-intake.dto';
@@ -16,6 +17,7 @@ export class WarehouseCnService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly push: PushService,
   ) {}
 
   async intake(actorId: string, dto: CnIntakeDto) {
@@ -59,6 +61,14 @@ export class WarehouseCnService {
         before: existing,
         after: updated,
       });
+      if (updated.clientId) {
+        await this.push.sendOrderStatusChanged(
+          updated.clientId,
+          updated.id,
+          updated.trackingCode,
+          updated.status,
+        );
+      }
       return this.selectOrderPublic(updated.id);
     }
 
@@ -79,6 +89,12 @@ export class WarehouseCnService {
       before: null,
       after: created,
     });
+    await this.push.sendOrderStatusChanged(
+      client.id,
+      created.id,
+      created.trackingCode,
+      created.status,
+    );
     return this.selectOrderPublic(created.id);
   }
 
@@ -118,6 +134,14 @@ export class WarehouseCnService {
       before: { status: existing.status },
       after: { status: updated.status },
     });
+    if (updated.clientId && existing.status !== updated.status) {
+      await this.push.sendOrderStatusChanged(
+        updated.clientId,
+        updated.id,
+        updated.trackingCode,
+        updated.status,
+      );
+    }
     return this.selectOrderPublic(updated.id);
   }
 

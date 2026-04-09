@@ -1,4 +1,4 @@
 {
-  "API_BASE": "http://127.0.0.1:51580/",
+  "API_BASE": "http://192.168.100.51:51580/",
   "APP_ENV": "development"
 }

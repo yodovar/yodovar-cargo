@@ -46,6 +46,7 @@ class AuthSessionNotifier extends StateNotifier<AsyncValue<bool>> {
     await _prefs.clearPhone();
     await _prefs.clearClientCode();
     await _prefs.clearAllAvatarLocal();
+    await _prefs.clearNotificationsSeenAtMs();
     state = const AsyncValue.data(false);
   }
 

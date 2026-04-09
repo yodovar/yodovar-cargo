@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/app_theme.dart';
+import '../../core/push_notifications_service.dart';
 import '../auth/auth_repository.dart';
 import '../auth/auth_session.dart';
 import 'home_screen.dart';
@@ -38,6 +39,7 @@ class _MainShellState extends ConsumerState<MainShell> {
       final prefs = ref.read(userPrefsProvider);
       final me = await ref.read(authRepositoryProvider).fetchMyIdentity();
       await syncMyIdentityToPrefs(me, prefs);
+      await PushNotificationsService.registerTokenToBackend();
       ref.read(profileAvatarRevisionProvider.notifier).state++;
       if (mounted) setState(() {});
     } catch (_) {

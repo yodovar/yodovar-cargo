@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { AuditService } from '../audit/audit.service';
 import { MeService } from '../me/me.service';
+import { PushService } from '../notifications/push.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { WAREHOUSE_TJ_READY_STATUSES } from './warehouse.constants';
 
@@ -16,6 +17,7 @@ export class WarehouseTjService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly meService: MeService,
+    private readonly push: PushService,
   ) {}
 
   async scan(code: string) {
@@ -76,6 +78,12 @@ export class WarehouseTjService {
       before: { status: order.status, handedOverAt: order.handedOverAt },
       after: { status: updated.status, handedOverAt: updated.handedOverAt },
     });
+    await this.push.sendOrderStatusChanged(
+      order.clientId,
+      updated.id,
+      updated.trackingCode,
+      updated.status,
+    );
     return this.prisma.order.findUniqueOrThrow({
       where: { id: orderId },
       select: {

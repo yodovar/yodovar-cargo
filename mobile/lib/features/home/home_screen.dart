@@ -9,6 +9,7 @@ import '../../core/pickup_points.dart';
 import '../../core/profile_avatar_display.dart';
 import '../../core/profile_avatar_url.dart';
 import '../auth/auth_session.dart';
+import 'notifications_page.dart';
 
 /// Главная для клиента: быстрые действия, трекинг, список отправлений (пока макет).
 class HomeScreen extends ConsumerStatefulWidget {
@@ -91,7 +92,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Запускаем авто-обновление источника уведомлений, даже если страница
+    // уведомлений не открыта: бейдж должен обновляться сам.
+    ref.watch(notificationsTickProvider);
     final theme = Theme.of(context);
+    final unreadNotifications =
+        ref.watch(unreadOrderNotificationsCountProvider).valueOrNull ?? 0;
     return ColoredBox(
       color: const Color(0xFFF2F4F7),
       child: SafeArea(
@@ -109,6 +115,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     : _clientCode!.trim().toUpperCase(),
                 avatarBytes: _avatarBytes,
                 avatarNetworkUrl: _avatarNetworkUrl,
+                unreadNotifications: unreadNotifications,
+                onNotificationsTap: () async {
+                  await Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const NotificationsPage(),
+                    ),
+                  );
+                  ref.invalidate(unreadOrderNotificationsCountProvider);
+                },
               ),
               const SizedBox(height: 14),
               const _OrderStatusesShowcase(
@@ -154,12 +169,16 @@ class _ClientHeaderCard extends StatelessWidget {
     required this.clientCode,
     required this.avatarBytes,
     this.avatarNetworkUrl,
+    required this.unreadNotifications,
+    required this.onNotificationsTap,
   });
 
   final String name;
   final String clientCode;
   final Uint8List? avatarBytes;
   final String? avatarNetworkUrl;
+  final int unreadNotifications;
+  final VoidCallback onNotificationsTap;
 
   @override
   Widget build(BuildContext context) {
@@ -212,9 +231,37 @@ class _ClientHeaderCard extends StatelessWidget {
               ],
             ),
           ),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.notifications_none_rounded),
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              IconButton(
+                onPressed: onNotificationsTap,
+                icon: const Icon(Icons.notifications_none_rounded),
+              ),
+              if (unreadNotifications > 0)
+                Positioned(
+                  right: 7,
+                  top: 7,
+                  child: Container(
+                    constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE53935),
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                    child: Center(
+                      child: Text(
+                        unreadNotifications > 99 ? '99+' : '$unreadNotifications',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
         ],
       ),

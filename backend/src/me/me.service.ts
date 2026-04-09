@@ -120,4 +120,23 @@ export class MeService {
       role: user.role,
     };
   }
+
+  async listNotifications(userId: string, take = 100) {
+    const capped = Math.min(Math.max(take, 1), 300);
+    const items = await this.prisma.orderStatusNotification.findMany({
+      where: { userId },
+      take: capped,
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        orderId: true,
+        trackingCode: true,
+        status: true,
+        title: true,
+        body: true,
+        createdAt: true,
+      },
+    });
+    return { items };
+  }
 }
