@@ -37,15 +37,7 @@ class _UsernameSetupScreenState extends ConsumerState<UsernameSetupScreen> {
     await prefs.setDisplayName(name);
     try {
       final me = await ref.read(authRepositoryProvider).fetchMyIdentity();
-      if (me.clientCode.isNotEmpty) {
-        await prefs.setClientCode(me.clientCode);
-      }
-      if (me.phone.isNotEmpty) {
-        await prefs.setPhone(me.phone);
-      }
-      if (me.name.isNotEmpty) {
-        await prefs.setDisplayName(me.name);
-      }
+      await syncMyIdentityToPrefs(me, prefs);
     } catch (_) {
       // Пользователь всё равно должен продолжить, даже если /me не ответил.
     }

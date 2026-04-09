@@ -22,6 +22,9 @@ model User {
   role         UserRole @default(client)
   /// Уникальный код клиента (например SF3456). Для работников/админа тоже может быть заполнен.
   clientCode   String?  @unique
+  /// Относительный путь внутри uploads/, например avatars/<id>.jpg
+  avatarKey    String?
+  avatarUpdatedAt DateTime?
   createdAt    DateTime @default(now())
   orders       Order[]
 }

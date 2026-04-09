@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/api_client.dart';
 import '../../core/app_theme.dart';
+import '../auth/auth_repository.dart';
 import '../auth/auth_session.dart';
 import 'home_screen.dart';
 import 'orders_screen.dart';
@@ -19,6 +19,14 @@ class MainShell extends ConsumerStatefulWidget {
 class _MainShellState extends ConsumerState<MainShell> {
   int _index = 0;
 
+  void _goTab(int i) {
+    if (i == _index) return;
+    setState(() => _index = i);
+    if (i == 0) {
+      ref.read(profileAvatarRevisionProvider.notifier).state++;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -27,16 +35,10 @@ class _MainShellState extends ConsumerState<MainShell> {
 
   Future<void> _syncIdentity() async {
     try {
-      final dio = ref.read(dioProvider);
       final prefs = ref.read(userPrefsProvider);
-      final res = await dio.get<Map<String, dynamic>>('/me');
-      final d = res.data ?? const {};
-      final name = (d['name'] as String? ?? '').trim();
-      final phone = (d['phone'] as String? ?? '').trim();
-      final code = (d['clientCode'] as String? ?? '').trim().toUpperCase();
-      if (name.isNotEmpty) await prefs.setDisplayName(name);
-      if (phone.isNotEmpty) await prefs.setPhone(phone);
-      if (code.isNotEmpty) await prefs.setClientCode(code);
+      final me = await ref.read(authRepositoryProvider).fetchMyIdentity();
+      await syncMyIdentityToPrefs(me, prefs);
+      ref.read(profileAvatarRevisionProvider.notifier).state++;
       if (mounted) setState(() {});
     } catch (_) {
       // Не блокируем UI, если сервер временно недоступен.
@@ -45,15 +47,13 @@ class _MainShellState extends ConsumerState<MainShell> {
 
   @override
   Widget build(BuildContext context) {
-    final prefs = ref.watch(userPrefsProvider);
-
     return Scaffold(
       body: SizedBox.expand(
         child: IndexedStack(
           index: _index,
           sizing: StackFit.expand,
           children: [
-            HomeScreen(prefs: prefs),
+            const HomeScreen(),
             const OrdersScreen(),
             const ProfileScreen(),
           ],
@@ -81,19 +81,19 @@ class _MainShellState extends ConsumerState<MainShell> {
                   icon: Icons.home_rounded,
                   label: 'Главная',
                   selected: _index == 0,
-                  onTap: () => setState(() => _index = 0),
+                  onTap: () => _goTab(0),
                 ),
                 _NavItem(
                   icon: Icons.list_alt_rounded,
                   label: 'Заказы',
                   selected: _index == 1,
-                  onTap: () => setState(() => _index = 1),
+                  onTap: () => _goTab(1),
                 ),
                 _NavItem(
                   icon: Icons.person_rounded,
                   label: 'Профиль',
                   selected: _index == 2,
-                  onTap: () => setState(() => _index = 2),
+                  onTap: () => _goTab(2),
                 ),
               ],
             ),

@@ -6,6 +6,9 @@ import '../../core/user_prefs.dart';
 
 final userPrefsProvider = Provider<UserPrefs>((ref) => UserPrefs());
 
+/// Увеличивайте после смены аватара, чтобы главная перечитала prefs.
+final profileAvatarRevisionProvider = StateProvider<int>((ref) => 0);
+
 final authSessionProvider =
     StateNotifierProvider<AuthSessionNotifier, AsyncValue<bool>>((ref) {
   return AuthSessionNotifier(
@@ -42,7 +45,7 @@ class AuthSessionNotifier extends StateNotifier<AsyncValue<bool>> {
     await _prefs.clearDisplayName();
     await _prefs.clearPhone();
     await _prefs.clearClientCode();
-    await _prefs.clearAvatarBase64();
+    await _prefs.clearAllAvatarLocal();
     state = const AsyncValue.data(false);
   }
 

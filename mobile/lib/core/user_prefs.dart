@@ -5,6 +5,8 @@ const _kPhone = 'user_phone';
 const _kClientCode = 'user_client_code';
 const _kAvatarBase64 = 'user_avatar_base64';
 const _kAvatarPath = 'user_avatar_path';
+const _kAvatarRemotePath = 'user_avatar_remote_path';
+const _kAvatarRemoteVer = 'user_avatar_remote_ver';
 const _kPickupCityId = 'pickup_city_id';
 
 /// Локальные предпочтения пользователя (имя/номер/аватар/выбранный пункт выдачи).
@@ -53,6 +55,29 @@ class UserPrefs {
 
   Future<String?> readAvatarPath() => _s.read(key: _kAvatarPath);
 
+  /// Путь вида `/uploads/avatars/...` и версия для `?v=` (с backend).
+  Future<void> setAvatarRemote({
+    required String path,
+    required int version,
+  }) async {
+    final p = path.trim();
+    if (p.isEmpty) return;
+    await _s.write(key: _kAvatarRemotePath, value: p);
+    await _s.write(key: _kAvatarRemoteVer, value: '$version');
+  }
+
+  Future<(String? path, int? version)> readAvatarRemote() async {
+    final p = await _s.read(key: _kAvatarRemotePath);
+    final v = await _s.read(key: _kAvatarRemoteVer);
+    if (p == null || p.isEmpty) return (null, null);
+    return (p, int.tryParse(v ?? ''));
+  }
+
+  Future<void> clearAvatarRemote() async {
+    await _s.delete(key: _kAvatarRemotePath);
+    await _s.delete(key: _kAvatarRemoteVer);
+  }
+
   Future<void> setPickupCityId(String cityId) async {
     await _s.write(key: _kPickupCityId, value: cityId);
   }
@@ -70,4 +95,10 @@ class UserPrefs {
   Future<void> clearAvatarPath() => _s.delete(key: _kAvatarPath);
 
   Future<void> clearPickupCityId() => _s.delete(key: _kPickupCityId);
+
+  Future<void> clearAllAvatarLocal() async {
+    await clearAvatarBase64();
+    await clearAvatarPath();
+    await clearAvatarRemote();
+  }
 }

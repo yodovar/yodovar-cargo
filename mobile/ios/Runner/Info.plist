@@ -61,6 +61,8 @@
 	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>Сканирование штрихкода с трек-номером посылки.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Выбор фото для аватара профиля.</string>
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>

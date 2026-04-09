@@ -2,12 +2,16 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:path_provider/path_provider.dart';
 
+import '../../core/api_client.dart';
 import '../../core/app_theme.dart';
+import '../../core/profile_avatar_display.dart';
+import '../../core/profile_avatar_url.dart';
+import '../auth/auth_repository.dart';
 import '../auth/auth_session.dart';
 
 class ProfileDetailsScreen extends ConsumerStatefulWidget {
@@ -21,11 +25,13 @@ class ProfileDetailsScreen extends ConsumerStatefulWidget {
   final String phone;
 
   @override
-  ConsumerState<ProfileDetailsScreen> createState() => _ProfileDetailsScreenState();
+  ConsumerState<ProfileDetailsScreen> createState() =>
+      _ProfileDetailsScreenState();
 }
 
 class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
   Uint8List? _avatarBytes;
+  String? _avatarNetworkUrl;
   bool _loadingAvatar = true;
   bool _savingAvatar = false;
 
@@ -37,27 +43,38 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
 
   Future<void> _loadAvatar() async {
     final prefs = ref.read(userPrefsProvider);
+    final (remotePath, remoteVer) = await prefs.readAvatarRemote();
+    final networkUrl = resolveProfileAvatarUrl(
+      relativePath: remotePath,
+      versionMs: remoteVer,
+    );
+    Uint8List? avatarBytes;
     final path = await prefs.readAvatarPath();
     if (path != null && path.isNotEmpty) {
       try {
         final f = File(path);
         if (await f.exists()) {
-          _avatarBytes = await f.readAsBytes();
+          avatarBytes = await f.readAsBytes();
         }
       } catch (_) {
-        _avatarBytes = null;
+        avatarBytes = null;
       }
     } else {
       final base64 = await prefs.readAvatarBase64();
       if (base64 != null && base64.isNotEmpty) {
         try {
-          _avatarBytes = base64Decode(base64);
+          avatarBytes = base64Decode(base64);
         } catch (_) {
-          _avatarBytes = null;
+          avatarBytes = null;
         }
       }
     }
-    if (mounted) setState(() => _loadingAvatar = false);
+    if (!mounted) return;
+    setState(() {
+      _avatarNetworkUrl = networkUrl;
+      _avatarBytes = avatarBytes;
+      _loadingAvatar = false;
+    });
   }
 
   Future<void> _pickAvatar() async {
@@ -67,30 +84,57 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
       final file = await picker.pickImage(
         source: ImageSource.gallery,
         maxWidth: 1024,
-        imageQuality: 82,
+        imageQuality: 85,
       );
       if (file == null) return;
+
       final bytes = await file.readAsBytes();
-      final docsDir = await getApplicationDocumentsDirectory();
-      final avatarFile = File('${docsDir.path}/profile_avatar.jpg');
-      await avatarFile.writeAsBytes(bytes, flush: true);
+      final dio = ref.read(dioProvider);
+      final filename =
+          file.name.trim().isNotEmpty ? file.name.trim() : 'avatar.jpg';
+      final form = FormData.fromMap({
+        'file': MultipartFile.fromBytes(bytes, filename: filename),
+      });
+      final res = await dio.post<Map<String, dynamic>>(
+        '/me/avatar',
+        data: form,
+      );
+      final d = res.data ?? const {};
+      final url = (d['avatarUrl'] as String?)?.trim();
+      final rawVer = d['avatarVersion'];
+      var version = 0;
+      if (rawVer is num) {
+        version = rawVer.toInt();
+      }
       final prefs = ref.read(userPrefsProvider);
-      await prefs.setAvatarPath(avatarFile.path);
-      // Legacy fallback key clean-up to avoid stale oversized values.
+      if (url != null && url.isNotEmpty) {
+        await prefs.setAvatarRemote(path: url, version: version);
+      }
+      await prefs.clearAvatarPath();
       await prefs.clearAvatarBase64();
+
       if (!mounted) return;
-      setState(() => _avatarBytes = bytes);
+      setState(() {
+        _avatarBytes = bytes;
+        _avatarNetworkUrl = resolveProfileAvatarUrl(
+          relativePath: url,
+          versionMs: version,
+        );
+      });
+      ref.read(profileAvatarRevisionProvider.notifier).state++;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Фото профиля обновлено'),
+          content: Text('Фото сохранено на сервере'),
           behavior: SnackBarBehavior.floating,
         ),
       );
+      Navigator.of(context).pop(true);
     } catch (e) {
       if (!mounted) return;
+      final msg = e is DioException ? messageFromDio(e) : e.toString();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Не удалось загрузить фото: $e'),
+          content: Text('Не удалось загрузить фото: $msg'),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -100,19 +144,48 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
   }
 
   Future<void> _removeAvatar() async {
-    final prefs = ref.read(userPrefsProvider);
-    final path = await prefs.readAvatarPath();
-    if (path != null && path.isNotEmpty) {
+    setState(() => _savingAvatar = true);
+    try {
+      final dio = ref.read(dioProvider);
       try {
-        final f = File(path);
-        if (await f.exists()) await f.delete();
-      } catch (_) {
-        // ignore
+        await dio.delete<void>('/me/avatar');
+      } on DioException catch (e) {
+        if (e.response?.statusCode != 404) rethrow;
       }
+      final prefs = ref.read(userPrefsProvider);
+      final path = await prefs.readAvatarPath();
+      if (path != null && path.isNotEmpty) {
+        try {
+          final f = File(path);
+          if (await f.exists()) await f.delete();
+        } catch (_) {}
+      }
+      await prefs.clearAllAvatarLocal();
+      if (!mounted) return;
+      setState(() {
+        _avatarBytes = null;
+        _avatarNetworkUrl = null;
+      });
+      ref.read(profileAvatarRevisionProvider.notifier).state++;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Фото профиля удалено'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      Navigator.of(context).pop(true);
+    } catch (e) {
+      if (!mounted) return;
+      final msg = e is DioException ? messageFromDio(e) : e.toString();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Не удалось удалить: $msg'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _savingAvatar = false);
     }
-    await prefs.clearAvatarPath();
-    await prefs.clearAvatarBase64();
-    if (mounted) setState(() => _avatarBytes = null);
   }
 
   @override
@@ -127,13 +200,10 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
               child: CircularProgressIndicator(strokeWidth: 2),
             ),
           )
-        : CircleAvatar(
+        : ProfileAvatarDisplay(
             radius: 40,
-            backgroundColor: Colors.white,
-            backgroundImage: _avatarBytes != null ? MemoryImage(_avatarBytes!) : null,
-            child: _avatarBytes == null
-                ? const Icon(Icons.person_rounded, color: AppTheme.brandRed, size: 40)
-                : null,
+            networkUrl: _avatarNetworkUrl,
+            memoryBytes: _avatarBytes,
           );
 
     return Scaffold(
@@ -160,6 +230,15 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
                   'Фото профиля',
                   style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
                 ),
+                const SizedBox(height: 4),
+                Text(
+                  'Хранится на сервере Insof Cargo',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.9),
+                    fontSize: 12,
+                  ),
+                ),
                 const SizedBox(height: 6),
                 Wrap(
                   spacing: 8,
@@ -173,7 +252,7 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
                         style: const TextStyle(color: Colors.white),
                       ),
                     ),
-                    if (_avatarBytes != null)
+                    if (_avatarBytes != null || _avatarNetworkUrl != null)
                       TextButton.icon(
                         onPressed: _savingAvatar ? null : _removeAvatar,
                         icon: const Icon(Icons.delete_outline_rounded, color: Colors.white),

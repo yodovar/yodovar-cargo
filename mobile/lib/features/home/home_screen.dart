@@ -1,27 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:convert';
 import 'dart:io';
 
 import '../../core/app_theme.dart';
 import '../../core/pickup_points.dart';
-import '../../core/user_prefs.dart';
+import '../../core/profile_avatar_display.dart';
+import '../../core/profile_avatar_url.dart';
+import '../auth/auth_session.dart';
 
 /// Главная для клиента: быстрые действия, трекинг, список отправлений (пока макет).
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, required this.prefs});
-
-  final UserPrefs prefs;
+class HomeScreen extends ConsumerStatefulWidget {
+  const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen> {
   String? _name;
   String? _phone;
   String? _clientCode;
   Uint8List? _avatarBytes;
+  String? _avatarNetworkUrl;
   String _pickupCityId = pickupPoints.first.id;
   final _trackCtrl = TextEditingController();
 
@@ -29,14 +31,25 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadProfile();
+    ref.listenManual<int>(profileAvatarRevisionProvider, (previous, next) {
+      if (previous != next) {
+        _loadProfile();
+      }
+    });
   }
 
   Future<void> _loadProfile() async {
-    final n = await widget.prefs.readDisplayName();
-    final p = await widget.prefs.readPhone();
-    final code = await widget.prefs.readClientCode();
+    final prefs = ref.read(userPrefsProvider);
+    final n = await prefs.readDisplayName();
+    final p = await prefs.readPhone();
+    final code = await prefs.readClientCode();
+    final (remotePath, remoteVer) = await prefs.readAvatarRemote();
+    final networkUrl = resolveProfileAvatarUrl(
+      relativePath: remotePath,
+      versionMs: remoteVer,
+    );
     Uint8List? avatarBytes;
-    final avatarPath = await widget.prefs.readAvatarPath();
+    final avatarPath = await prefs.readAvatarPath();
     if (avatarPath != null && avatarPath.isNotEmpty) {
       try {
         final f = File(avatarPath);
@@ -47,7 +60,7 @@ class _HomeScreenState extends State<HomeScreen> {
         avatarBytes = null;
       }
     } else {
-      final avatarBase64 = await widget.prefs.readAvatarBase64();
+      final avatarBase64 = await prefs.readAvatarBase64();
       if (avatarBase64 != null && avatarBase64.isNotEmpty) {
         try {
           avatarBytes = base64Decode(avatarBase64);
@@ -56,12 +69,13 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       }
     }
-    final cityId = await widget.prefs.readPickupCityId();
+    final cityId = await prefs.readPickupCityId();
     if (!mounted) return;
     setState(() {
       _name = n;
       _phone = p;
       _clientCode = code;
+      _avatarNetworkUrl = networkUrl;
       _avatarBytes = avatarBytes;
       if (cityId != null && pickupPoints.any((e) => e.id == cityId)) {
         _pickupCityId = cityId;
@@ -94,6 +108,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ? '-----'
                     : _clientCode!.trim().toUpperCase(),
                 avatarBytes: _avatarBytes,
+                avatarNetworkUrl: _avatarNetworkUrl,
               ),
               const SizedBox(height: 14),
               const _OrderStatusesShowcase(
@@ -138,11 +153,13 @@ class _ClientHeaderCard extends StatelessWidget {
     required this.name,
     required this.clientCode,
     required this.avatarBytes,
+    this.avatarNetworkUrl,
   });
 
   final String name;
   final String clientCode;
   final Uint8List? avatarBytes;
+  final String? avatarNetworkUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -162,13 +179,10 @@ class _ClientHeaderCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          CircleAvatar(
+          ProfileAvatarDisplay(
             radius: 30,
-            backgroundColor: AppTheme.brandRed.withValues(alpha: 0.15),
-            backgroundImage: avatarBytes != null ? MemoryImage(avatarBytes!) : null,
-            child: avatarBytes == null
-                ? const Icon(Icons.person_rounded, color: AppTheme.brandRed, size: 30)
-                : null,
+            networkUrl: avatarNetworkUrl,
+            memoryBytes: avatarBytes,
           ),
           const SizedBox(width: 12),
           Expanded(

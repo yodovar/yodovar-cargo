@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api_client.dart';
 import '../../core/token_storage.dart';
+import '../../core/user_prefs.dart';
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepository(
@@ -26,11 +27,34 @@ class MyIdentity {
     required this.name,
     required this.phone,
     required this.clientCode,
+    this.avatarUrl,
+    this.avatarVersion,
   });
 
   final String name;
   final String phone;
   final String clientCode;
+  /// Относительный путь с API, например `/uploads/avatars/uuid.jpg`.
+  final String? avatarUrl;
+  final int? avatarVersion;
+
+  bool get hasRemoteAvatar =>
+      avatarUrl != null && avatarUrl!.trim().isNotEmpty;
+}
+
+/// Сохраняет данные из `/me` в локальные prefs (в т.ч. URL аватара).
+Future<void> syncMyIdentityToPrefs(MyIdentity me, UserPrefs prefs) async {
+  if (me.name.isNotEmpty) await prefs.setDisplayName(me.name);
+  if (me.phone.isNotEmpty) await prefs.setPhone(me.phone);
+  if (me.clientCode.isNotEmpty) await prefs.setClientCode(me.clientCode);
+  if (me.hasRemoteAvatar) {
+    await prefs.setAvatarRemote(
+      path: me.avatarUrl!.trim(),
+      version: me.avatarVersion ?? 0,
+    );
+  } else {
+    await prefs.clearAvatarRemote();
+  }
 }
 
 class AuthRepository {
@@ -119,10 +143,17 @@ class AuthRepository {
   Future<MyIdentity> fetchMyIdentity() async {
     final res = await dio.get<Map<String, dynamic>>('/me');
     final d = res.data ?? const {};
+    final rawVer = d['avatarVersion'];
+    int? avatarVersion;
+    if (rawVer is num) {
+      avatarVersion = rawVer.toInt();
+    }
     return MyIdentity(
       name: (d['name'] as String? ?? '').trim(),
       phone: (d['phone'] as String? ?? '').trim(),
       clientCode: (d['clientCode'] as String? ?? '').trim().toUpperCase(),
+      avatarUrl: (d['avatarUrl'] as String?)?.trim(),
+      avatarVersion: avatarVersion,
     );
   }
 }

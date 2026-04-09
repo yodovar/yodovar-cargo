@@ -5,29 +5,81 @@ import 'dart:convert';
 import 'dart:io';
 
 import '../../core/app_theme.dart';
+import '../../core/profile_avatar_display.dart';
+import '../../core/profile_avatar_url.dart';
 import '../../core/user_prefs.dart';
 import '../auth/auth_session.dart';
 import 'profile_details_screen.dart';
 import 'pickup_points_screen.dart';
 import 'tariffs_screen.dart';
 
-class ProfileScreen extends ConsumerWidget {
+class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
+  static Future<(String, String, String, Uint8List?, String?)> loadProfile(
+    UserPrefs prefs,
+  ) async {
+    final n = (await prefs.readDisplayName())?.trim();
+    final p = (await prefs.readPhone())?.trim();
+    final c = (await prefs.readClientCode())?.trim().toUpperCase();
+    final (remotePath, remoteVer) = await prefs.readAvatarRemote();
+    final avatarNetworkUrl = resolveProfileAvatarUrl(
+      relativePath: remotePath,
+      versionMs: remoteVer,
+    );
+    Uint8List? avatarBytes;
+    final avatarPath = await prefs.readAvatarPath();
+    if (avatarPath != null && avatarPath.isNotEmpty) {
+      try {
+        final f = File(avatarPath);
+        if (await f.exists()) {
+          avatarBytes = await f.readAsBytes();
+        }
+      } catch (_) {
+        avatarBytes = null;
+      }
+    } else {
+      final avatarBase64 = await prefs.readAvatarBase64();
+      if (avatarBase64 != null && avatarBase64.isNotEmpty) {
+        try {
+          avatarBytes = base64Decode(avatarBase64);
+        } catch (_) {
+          avatarBytes = null;
+        }
+      }
+    }
+    return (
+      (n == null || n.isEmpty) ? 'Пользователь' : n,
+      (p == null || p.isEmpty) ? '+992' : p,
+      c ?? '',
+      avatarBytes,
+      avatarNetworkUrl,
+    );
+  }
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+  int _reloadKey = 0;
+
+  @override
+  Widget build(BuildContext context) {
     final prefs = ref.watch(userPrefsProvider);
 
     return ColoredBox(
       color: const Color(0xFFF2F4F7),
       child: SafeArea(
-        child: FutureBuilder<(String, String, String, Uint8List?)>(
-          future: _loadProfile(prefs),
+        child: FutureBuilder<(String, String, String, Uint8List?, String?)>(
+          key: ValueKey(_reloadKey),
+          future: ProfileScreen.loadProfile(prefs),
           builder: (context, snap) {
             final name = snap.data?.$1 ?? 'Пользователь';
             final phone = snap.data?.$2 ?? '+992';
             final clientCode = snap.data?.$3 ?? '';
             final avatarBytes = snap.data?.$4;
+            final avatarNetworkUrl = snap.data?.$5;
 
             return ListView(
               padding: const EdgeInsets.all(20),
@@ -44,12 +96,17 @@ class ProfileScreen extends ConsumerWidget {
                   phone: phone,
                   clientCode: clientCode,
                   avatarBytes: avatarBytes,
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => ProfileDetailsScreen(name: name, phone: phone),
+                  avatarNetworkUrl: avatarNetworkUrl,
+                  onTap: () async {
+                    final changed = await Navigator.of(context).push<bool>(
+                      MaterialPageRoute<bool>(
+                        builder: (_) =>
+                            ProfileDetailsScreen(name: name, phone: phone),
                       ),
                     );
+                    if (changed == true && mounted) {
+                      setState(() => _reloadKey++);
+                    }
                   },
                 ),
                 const SizedBox(height: 12),
@@ -128,39 +185,6 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  static Future<(String, String, String, Uint8List?)> _loadProfile(UserPrefs prefs) async {
-    final n = (await prefs.readDisplayName())?.trim();
-    final p = (await prefs.readPhone())?.trim();
-    final c = (await prefs.readClientCode())?.trim().toUpperCase();
-    Uint8List? avatarBytes;
-    final avatarPath = await prefs.readAvatarPath();
-    if (avatarPath != null && avatarPath.isNotEmpty) {
-      try {
-        final f = File(avatarPath);
-        if (await f.exists()) {
-          avatarBytes = await f.readAsBytes();
-        }
-      } catch (_) {
-        avatarBytes = null;
-      }
-    } else {
-      final avatarBase64 = await prefs.readAvatarBase64();
-      if (avatarBase64 != null && avatarBase64.isNotEmpty) {
-        try {
-          avatarBytes = base64Decode(avatarBase64);
-        } catch (_) {
-          avatarBytes = null;
-        }
-      }
-    }
-    return (
-      (n == null || n.isEmpty) ? 'Пользователь' : n,
-      (p == null || p.isEmpty) ? '+992' : p,
-      c ?? '',
-      avatarBytes,
-    );
-  }
-
   static void _showSoon(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -177,6 +201,7 @@ class _MergedDataCard extends StatelessWidget {
     required this.phone,
     required this.clientCode,
     required this.avatarBytes,
+    this.avatarNetworkUrl,
     required this.onTap,
   });
 
@@ -184,6 +209,7 @@ class _MergedDataCard extends StatelessWidget {
   final String phone;
   final String clientCode;
   final Uint8List? avatarBytes;
+  final String? avatarNetworkUrl;
   final VoidCallback onTap;
 
   @override
@@ -210,13 +236,10 @@ class _MergedDataCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            CircleAvatar(
+            ProfileAvatarDisplay(
               radius: 24,
-              backgroundColor: Colors.white,
-              backgroundImage: avatarBytes != null ? MemoryImage(avatarBytes!) : null,
-              child: avatarBytes == null
-                  ? const Icon(Icons.person_rounded, color: AppTheme.brandRed)
-                  : null,
+              networkUrl: avatarNetworkUrl,
+              memoryBytes: avatarBytes,
             ),
             const SizedBox(width: 12),
             Expanded(

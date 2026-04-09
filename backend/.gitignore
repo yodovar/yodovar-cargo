@@ -5,4 +5,7 @@ dist
 *.db
 *.db-journal
 
+# Загруженные аватары и прочие файлы
+uploads/
+
 /generated/prisma
