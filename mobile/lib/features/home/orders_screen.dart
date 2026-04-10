@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../core/api_client.dart';
+import '../../core/lang.dart';
 import 'tracking_search_screen.dart';
 
 final ordersSummaryProvider = FutureProvider<OrdersSummaryData>((ref) async {
@@ -48,7 +49,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
       backgroundColor: const Color(0xFFF2F4F7),
       appBar: showBack
           ? AppBar(
-              title: const Text('Заказы'),
+              title: Text(tr(context, ru: 'Заказы', tg: 'Фармоишҳо')),
               backgroundColor: Colors.transparent,
             )
           : null,
@@ -58,19 +59,23 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
           children: [
             if (!showBack)
               Text(
-                'Заказы',
+                tr(context, ru: 'Заказы', tg: 'Фармоишҳо'),
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.w800,
                     ),
               ),
             const SizedBox(height: 4),
             Text(
-              'Видите только свои заказы: трек-коды, статусы и время приёмки.',
+              tr(
+                context,
+                ru: 'Видите только свои заказы: трек-коды, статусы и время приёмки.',
+                tg: 'Танҳо фармоишҳои худро мебинед: трек-код, ҳолат ва вақти қабул.',
+              ),
               style: TextStyle(color: Colors.grey.shade600, height: 1.25),
             ),
             const SizedBox(height: 18),
-            const Text(
-              'Статусы заказов',
+            Text(
+              tr(context, ru: 'Статусы заказов', tg: 'Ҳолатҳои фармоишҳо'),
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 12),
@@ -79,7 +84,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
               error: (_, __) => Center(
                 child: FilledButton.tonal(
                   onPressed: () => ref.invalidate(ordersSummaryProvider),
-                  child: const Text('Ошибка загрузки. Повторить'),
+                  child: Text(tr(context, ru: 'Ошибка загрузки. Повторить', tg: 'Хатои боркунӣ. Такрор')),
                 ),
               ),
               data: (data) => GridView.builder(
@@ -100,7 +105,11 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
                       MaterialPageRoute<void>(
                         builder: (_) => OrdersByStatusPage(
                           statusKey: data.statuses[i].statusKey,
-                          statusTitle: data.statuses[i].title,
+                          statusTitle: _statusTitle(
+                            context,
+                            data.statuses[i].statusKey,
+                            data.statuses[i].title,
+                          ),
                           accentColor: data.statuses[i].color,
                         ),
                       ),
@@ -116,7 +125,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
               data: (data) => _ActionRowCard(
                 icon: Icons.qr_code_2_rounded,
                 iconColor: const Color(0xFF1EB980),
-                title: 'Ваш уникальный QR-код',
+                title: tr(context, ru: 'Ваш уникальный QR-код', tg: 'QR-коди ягонаи шумо'),
                 subtitle: data.qrCode,
                 onTap: () {
                   Navigator.of(context).push(
@@ -134,8 +143,8 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
             _ActionRowCard(
               icon: Icons.search_off_rounded,
               iconColor: const Color(0xFFE35A64),
-              title: 'Поиск по трек-коду',
-              subtitle: 'Проверьте свой заказ',
+              title: tr(context, ru: 'Поиск по трек-коду', tg: 'Ҷустуҷӯ бо трек-код'),
+              subtitle: tr(context, ru: 'Проверьте свой заказ', tg: 'Фармоиши худро санҷед'),
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute<void>(
@@ -177,7 +186,7 @@ class OrdersByStatusPage extends ConsumerWidget {
         error: (_, __) => Center(
           child: FilledButton.tonal(
             onPressed: () => ref.invalidate(ordersListProvider(statusKey)),
-            child: const Text('Не удалось загрузить. Повторить'),
+            child: Text(tr(context, ru: 'Не удалось загрузить. Повторить', tg: 'Боркунӣ нашуд. Такрор')),
           ),
         ),
         data: (data) {
@@ -191,7 +200,9 @@ class OrdersByStatusPage extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(color: Colors.grey.shade200),
                 ),
-                child: const Text('По этому статусу заказов нет.'),
+                child: Text(
+                  tr(context, ru: 'По этому статусу заказов нет.', tg: 'Аз рӯи ин ҳолат фармоиш нест.'),
+                ),
               ),
             );
           }
@@ -225,7 +236,11 @@ class OrdersByStatusPage extends ConsumerWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Найдено заказов: ${data.items.length}',
+                      tr(
+                        context,
+                        ru: 'Найдено заказов: ${data.items.length}',
+                        tg: 'Фармоиш ёфт шуд: ${data.items.length}',
+                      ),
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.95),
                         fontWeight: FontWeight.w600,
@@ -479,14 +494,18 @@ class _OrderStatusCard extends StatelessWidget {
                 ),
               ],
             ),
-            const Spacer(),
+            const SizedBox(height: 10),
             Text(
-              item.title,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+              _statusTitle(context, item.statusKey, item.title),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 2),
             Text(
-              item.subtitle,
+              _statusSubtitle(context, item.statusKey, item.subtitle),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(color: Colors.grey.shade600, height: 1.15),
             ),
           ],
@@ -567,7 +586,7 @@ class ClientQrPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF2F4F7),
       appBar: AppBar(
-        title: const Text('Мой уникальный QR-код'),
+        title: Text(tr(context, ru: 'Мой уникальный QR-код', tg: 'QR-коди ягонаи ман')),
         backgroundColor: Colors.transparent,
       ),
       body: Center(
@@ -595,8 +614,8 @@ class ClientQrPage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 12),
-              const Text(
-                'Покажите этот QR на складе',
+              Text(
+                tr(context, ru: 'Покажите этот QR на складе', tg: 'Ин QR-ро дар анбор нишон диҳед'),
                 style: TextStyle(fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 6),
@@ -664,7 +683,7 @@ class _OrderModernCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'Статус: ${_statusLabel(order.status)}',
+                    tr(context, ru: 'Статус: ${_statusLabel(context, order.status)}', tg: 'Ҳолат: ${_statusLabel(context, order.status)}'),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(color: Colors.grey.shade700),
@@ -675,27 +694,27 @@ class _OrderModernCard extends StatelessWidget {
                     runSpacing: 2,
                     children: [
                       Text(
-                        'Вес: $weightKg кг',
+                        tr(context, ru: 'Вес: $weightKg кг', tg: 'Вазн: $weightKg кг'),
                         style: const TextStyle(fontWeight: FontWeight.w700),
                       ),
                       Text(
-                        'Цена: $priceTjs TJS',
+                        tr(context, ru: 'Цена: $priceTjs TJS', tg: 'Нарх: $priceTjs TJS'),
                         style: const TextStyle(fontWeight: FontWeight.w700),
                       ),
                     ],
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'Обновлено: ${_formatDate(order.updatedAt)}',
+                    tr(context, ru: 'Обновлено: ${_formatDate(order.updatedAt)}', tg: 'Нав шуд: ${_formatDate(order.updatedAt)}'),
                     style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
                   ),
                 ],
               ),
             ),
             if (!order.isPaid)
-              const Flexible(
+              Flexible(
                 child: Text(
-                  'Не оплачено',
+                  tr(context, ru: 'Не оплачено', tg: 'Пардохт нашудааст'),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.right,
@@ -719,7 +738,7 @@ class _OrderDetailsSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final steps = _buildTimeline(order);
+    final steps = _buildTimeline(order, context);
     final weightKg = ((order.weightGrams ?? 0) / 1000).toStringAsFixed(1);
     final volume = ((order.weightGrams ?? 0) / 1000000).toStringAsFixed(3);
     final priceTjs =
@@ -758,7 +777,7 @@ class _OrderDetailsSheet extends ConsumerWidget {
             Row(
               children: [
                 Text(
-                  'Трек-код',
+                  tr(context, ru: 'Трек-код', tg: 'Трек-код'),
                   style: TextStyle(
                       color: Colors.grey.shade500, fontWeight: FontWeight.w600),
                 ),
@@ -766,7 +785,7 @@ class _OrderDetailsSheet extends ConsumerWidget {
                 IconButton(
                   onPressed: () => Navigator.of(context).pop(),
                   icon: const Icon(Icons.close_rounded),
-                  tooltip: 'Закрыть',
+                  tooltip: tr(context, ru: 'Закрыть', tg: 'Пӯшидан'),
                 ),
               ],
             ),
@@ -778,7 +797,8 @@ class _OrderDetailsSheet extends ConsumerWidget {
             ),
             if (!order.isPaid) ...[
               const SizedBox(height: 4),
-              const Text('Не оплачено',
+              Text(
+                tr(context, ru: 'Не оплачено', tg: 'Пардохт нашудааст'),
                   style: TextStyle(
                       color: Color(0xFFD84315), fontWeight: FontWeight.w700)),
               const SizedBox(height: 8),
@@ -802,8 +822,8 @@ class _OrderDetailsSheet extends ConsumerWidget {
                   } on DioException {
                     if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Не удалось загрузить QR-код'),
+                      SnackBar(
+                        content: Text(tr(context, ru: 'Не удалось загрузить QR-код', tg: 'QR-код бор нашуд')),
                         behavior: SnackBarBehavior.floating,
                       ),
                     );
@@ -813,22 +833,23 @@ class _OrderDetailsSheet extends ConsumerWidget {
                   backgroundColor: const Color(0xFFFF9800),
                   foregroundColor: Colors.white,
                 ),
-                child: const Text('Мой QR-код'),
+                child: Text(tr(context, ru: 'Мой QR-код', tg: 'QR-коди ман')),
               ),
             ],
             const SizedBox(height: 10),
             const Divider(height: 1),
             const SizedBox(height: 12),
-            const Text('Детали заказа',
+            Text(
+              tr(context, ru: 'Детали заказа', tg: 'Тафсилоти фармоиш'),
                 style: TextStyle(fontWeight: FontWeight.w700)),
             const SizedBox(height: 10),
             Row(
               children: [
-                _DetailMiniCard(label: 'Вес', value: '$weightKg кг'),
+                _DetailMiniCard(label: tr(context, ru: 'Вес', tg: 'Вазн'), value: '$weightKg кг'),
                 const SizedBox(width: 8),
-                _DetailMiniCard(label: 'Куб', value: '$volume м³'),
+                _DetailMiniCard(label: tr(context, ru: 'Куб', tg: 'Куб'), value: '$volume м³'),
                 const SizedBox(width: 8),
-                _DetailMiniCard(label: 'Цена', value: '$priceTjs TJS'),
+                _DetailMiniCard(label: tr(context, ru: 'Цена', tg: 'Нарх'), value: '$priceTjs TJS'),
               ],
             ),
             const SizedBox(height: 14),
@@ -966,23 +987,54 @@ class _TimelineStepRow extends StatelessWidget {
   }
 }
 
-String _statusLabel(String status) {
+String _statusLabel(BuildContext context, String status) {
+  final tg = isTajik(context);
   switch (status) {
     case 'received_china':
-      return 'Получено в Китае';
+      return tg ? 'Дар Чин қабул шуд' : 'Получено в Китае';
     case 'in_transit':
-      return 'В пути';
+      return tg ? 'Дар роҳ' : 'В пути';
     case 'sorting':
-      return 'Сортировка';
+      return tg ? 'Ҷудокунии бор' : 'Сортировка';
     case 'ready_pickup':
-      return 'Готово к выдаче';
+      return tg ? 'Омода барои супоридан' : 'Готово к выдаче';
     case 'with_courier':
-      return 'Передан курьеру';
+      return tg ? 'Ба хаткашон дода шуд' : 'Передан курьеру';
     case 'completed':
-      return 'Полученные';
+      return tg ? 'Қабулшуда' : 'Полученные';
     default:
       return status;
   }
+}
+
+String _statusTitle(BuildContext context, String key, String fallback) {
+  final tg = isTajik(context);
+  final map = <String, String>{
+    'all': tg ? 'Ҳама фармоишҳо' : 'Все заказы',
+    'receivedChina': tg ? 'Дар Чин қабул шуд' : 'Получено в Китае',
+    'inTransit': tg ? 'Дар роҳ' : 'В пути',
+    'sorting': tg ? 'Ҷудокунии бор' : 'Сортировка',
+    'readyPickup': tg ? 'Омода барои супоридан' : 'Готово к выдаче',
+    'withCourier': tg ? 'Ба хаткашон дода шуд' : 'Передан курьеру',
+    'unpaid': tg ? 'Пардохтнашуда' : 'Неоплаченные',
+    'completed': tg ? 'Қабулшуда' : 'Полученные',
+  };
+  return map[key] ?? fallback;
+}
+
+String _statusSubtitle(BuildContext context, String key, String fallback) {
+  final tg = isTajik(context);
+  final map = <String, String>{
+    'all': tg ? 'Рӯйхати пурраи фиристодаҳо' : 'Полный список отправлений',
+    'receivedChina': tg ? 'Дар анбор қабул шуд' : 'Принято на складе',
+    'inTransit': tg ? 'Интиқоли байналмилалӣ' : 'Международная доставка',
+    'sorting': tg ? 'Коркард дар марказ' : 'Обработка на хабе',
+    'readyPickup': tg ? 'Гирифтан мумкин' : 'Можно забирать',
+    'withCourier': tg ? 'Хаткашон мебарад' : 'Курьер уже везет',
+    'unpaid': tg ? 'Интизори пардохт' : 'Ожидают оплату',
+    'completed': tg ? 'Бо муваффақият анҷомшуда' : 'Успешно завершенные',
+  };
+  return map[key] ?? fallback;
 }
 
 String _formatDate(DateTime date) {
@@ -991,7 +1043,7 @@ String _formatDate(DateTime date) {
   return '${two(d.day)}.${two(d.month)}.${d.year}, ${two(d.hour)}:${two(d.minute)}';
 }
 
-List<Widget> _buildTimeline(OrderRowItem order) {
+List<Widget> _buildTimeline(OrderRowItem order, BuildContext context) {
   const stepKeys = [
     'created',
     'received_china',
@@ -1025,16 +1077,38 @@ List<Widget> _buildTimeline(OrderRowItem order) {
   for (var i = 0; i < stepKeys.length; i++) {
     final key = stepKeys[i];
     final pair = stepTitles[key]!;
+    final title = isTajik(context)
+        ? ({
+            'created': 'Фармоиш эҷод шуд',
+            'received_china': 'Дар Чин қабул шуд',
+            'in_transit': 'Дар роҳ',
+            'sorting': 'Ҷудокунии бор',
+            'ready_pickup': 'Омода барои супоридан',
+            'with_courier': 'Ба хаткашон дода шуд',
+            'completed': 'Гирифта шуд',
+          }[key]!)
+        : pair.$1;
+    final subtitle = isTajik(context)
+        ? ({
+            'created': 'Дархост сабт шуд',
+            'received_china': 'Дар анбор қабул шуд',
+            'in_transit': 'Интиқоли байналмилалӣ',
+            'sorting': 'Коркард дар марказ',
+            'ready_pickup': 'Фармоишро гирифтан мумкин',
+            'with_courier': 'Хаткашон мерасонад',
+            'completed': 'Фармоиш анҷом шуд',
+          }[key]!)
+        : pair.$2;
     final active = i <= currentRank;
     final showLine = i != stepKeys.length - 1;
     final time = active
         ? _formatDate(i <= 1 ? order.createdAt : order.updatedAt)
-        : 'Ожидается';
+        : tr(context, ru: 'Ожидается', tg: 'Интизор аст');
     list.add(
       _TimelineStepRow(
         active: active,
-        title: pair.$1,
-        subtitle: pair.$2,
+        title: title,
+        subtitle: subtitle,
         timeText: time,
         showLine: showLine,
       ),

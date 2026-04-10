@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/app_theme.dart';
+import '../../core/lang.dart';
 import '../auth/phone_auth_screen.dart';
 
 class WelcomeScreen extends StatefulWidget {
@@ -12,38 +13,8 @@ class WelcomeScreen extends StatefulWidget {
 
 class _WelcomeScreenState extends State<WelcomeScreen> {
   final _pc = PageController();
+  static const _pageCount = 4;
   int _index = 0;
-
-  final _pages = const [
-    _OnboardingData(
-      icon: Icons.waving_hand_rounded,
-      title: 'Добро пожаловать в Insof Cargo',
-      body:
-          'Начни покупать из Китая без посредников, предоплат и скрытых комиссий.',
-      hint: 'Всё за 3 минуты',
-    ),
-    _OnboardingData(
-      icon: Icons.shopping_bag_rounded,
-      title: 'Установи маркет и вставь наш адрес',
-      body:
-          'Это займёт около 1 минуты. Мы покажем, куда и что вставить правильно.',
-      hint: 'Пошаговая инструкция внутри',
-    ),
-    _OnboardingData(
-      icon: Icons.local_shipping_rounded,
-      title: 'Условия доставки',
-      body:
-          'Обычно от 14 до 25 дней после приёма товара на нашем складе в Китае.',
-      hint: 'Прозрачные сроки и статусы',
-    ),
-    _OnboardingData(
-      icon: Icons.groups_rounded,
-      title: 'С нами заказывают тысячи клиентов',
-      body:
-          'Надёжная доставка, отслеживание в приложении и поддержка на каждом шаге.',
-      hint: 'Готовы начать?',
-    ),
-  ];
 
   @override
   void dispose() {
@@ -52,7 +23,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   }
 
   void _next() {
-    if (_index < _pages.length - 1) {
+    if (_index < _pageCount - 1) {
       _pc.nextPage(
         duration: const Duration(milliseconds: 280),
         curve: Curves.easeOut,
@@ -66,6 +37,32 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final pages = [
+      _OnboardingData(
+        icon: Icons.waving_hand_rounded,
+        title: tr(context, ru: 'Добро пожаловать в Insof Cargo', tg: 'Ба Insof Cargo хуш омадед'),
+        body: tr(context, ru: 'Начни покупать из Китая без посредников, предоплат и скрытых комиссий.', tg: 'Аз Чин бидуни миёнарав, пешпардохт ва комиссияи пинҳонӣ харидро оғоз кунед.'),
+        hint: tr(context, ru: 'Всё за 3 минуты', tg: 'Ҳамааш дар 3 дақиқа'),
+      ),
+      _OnboardingData(
+        icon: Icons.shopping_bag_rounded,
+        title: tr(context, ru: 'Установи маркет и вставь наш адрес', tg: 'Маркетро насб кунед ва суроғаи моро гузоред'),
+        body: tr(context, ru: 'Это займёт около 1 минуты. Мы покажем, куда и что вставить правильно.', tg: 'Ин тақрибан 1 дақиқа мегирад. Мо нишон медиҳем, ки куҷо ва чиро дуруст гузоред.'),
+        hint: tr(context, ru: 'Пошаговая инструкция внутри', tg: 'Дастури қадам ба қадам дар дохил'),
+      ),
+      _OnboardingData(
+        icon: Icons.local_shipping_rounded,
+        title: tr(context, ru: 'Условия доставки', tg: 'Шартҳои расондан'),
+        body: tr(context, ru: 'Обычно от 14 до 25 дней после приёма товара на нашем складе в Китае.', tg: 'Одатан 14 то 25 рӯз пас аз қабули мол дар анбори мо дар Чин.'),
+        hint: tr(context, ru: 'Прозрачные сроки и статусы', tg: 'Муҳлат ва ҳолатҳои шаффоф'),
+      ),
+      _OnboardingData(
+        icon: Icons.groups_rounded,
+        title: tr(context, ru: 'С нами заказывают тысячи клиентов', tg: 'Бо мо ҳазорҳо муштарӣ фармоиш медиҳанд'),
+        body: tr(context, ru: 'Надёжная доставка, отслеживание в приложении и поддержка на каждом шаге.', tg: 'Расониши боэътимод, пайгирӣ дар барнома ва дастгирӣ дар ҳар қадам.'),
+        hint: tr(context, ru: 'Готовы начать?', tg: 'Омодаед оғоз кунед?'),
+      ),
+    ];
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -73,10 +70,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
             Expanded(
               child: PageView.builder(
                 controller: _pc,
-                itemCount: _pages.length,
+                itemCount: pages.length,
                 onPageChanged: (i) => setState(() => _index = i),
                 itemBuilder: (_, i) {
-                  final d = _pages[i];
+                  final d = pages[i];
                   return Padding(
                     padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
                     child: DecoratedBox(
@@ -153,7 +150,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(
-                _pages.length,
+                pages.length,
                 (i) => AnimatedContainer(
                   duration: const Duration(milliseconds: 220),
                   margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -171,16 +168,16 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
               child: Row(
                 children: [
-                  if (_index < _pages.length - 1)
+                  if (_index < pages.length - 1)
                     TextButton(
                       onPressed: () {
                         _pc.animateToPage(
-                          _pages.length - 1,
+                          pages.length - 1,
                           duration: const Duration(milliseconds: 280),
                           curve: Curves.easeOut,
                         );
                       },
-                      child: const Text('Пропустить'),
+                      child: Text(tr(context, ru: 'Пропустить', tg: 'Гузарондан')),
                     )
                   else
                     const SizedBox(width: 88),
@@ -192,9 +189,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 18),
                     ),
                     child: Text(
-                      _index == _pages.length - 1
-                          ? 'Начать регистрацию'
-                          : 'Далее',
+                      _index == pages.length - 1
+                          ? tr(context, ru: 'Начать регистрацию', tg: 'Оғози бақайдгирӣ')
+                          : tr(context, ru: 'Далее', tg: 'Баъдӣ'),
                     ),
                   ),
                 ],

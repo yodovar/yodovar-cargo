@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/app_theme.dart';
+import '../../core/lang.dart';
 import '../../core/responsive.dart';
 
 class ProhibitedGoodsScreen extends StatelessWidget {
@@ -11,7 +12,7 @@ class ProhibitedGoodsScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF2F4F7),
       appBar: AppBar(
-        title: const Text('Запрещенные товары'),
+        title: Text(tr(context, ru: 'Запрещенные товары', tg: 'Молҳои манъшуда')),
         backgroundColor: Colors.transparent,
       ),
       body: SafeArea(
@@ -21,44 +22,44 @@ class ProhibitedGoodsScreen extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
             child: ConstrainedBox(
               constraints: BoxConstraints(maxWidth: contentMaxWidth(context)),
-              child: const Column(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _AlertHeader(),
                   SizedBox(height: 12),
                   _CategoryTile(
                     icon: Icons.broken_image_outlined,
-                    title: 'Хрупкие и ломкие товары',
+                    title: tr(context, ru: 'Хрупкие и ломкие товары', tg: 'Молҳои нозук ва шикасташаванда'),
                     subtitle:
-                        'Электронные сигареты, зеркала, порнографическая продукция, поврежденные товары и т.д.',
+                        tr(context, ru: 'Электронные сигареты, зеркала, порнографическая продукция, поврежденные товары и т.д.', tg: 'Сигорҳои электронӣ, оинаҳо, маҳсулоти порнографӣ, молҳои осебдида ва ғайра.'),
                   ),
                   _CategoryTile(
                     icon: Icons.gpp_bad_outlined,
-                    title: 'Оружие и военные предметы',
+                    title: tr(context, ru: 'Оружие и военные предметы', tg: 'Силоҳ ва ашёи ҳарбӣ'),
                     subtitle:
-                        'Ножи, оружие, электрошокеры, микрокамеры, микронаушники и т.д.',
+                        tr(context, ru: 'Ножи, оружие, электрошокеры, микрокамеры, микронаушники и т.д.', tg: 'Корд, силоҳ, электрошокер, микрокамера, микронаушник ва ғайра.'),
                   ),
                   _CategoryTile(
                     icon: Icons.warning_amber_rounded,
-                    title: 'Взрывоопасные материалы',
+                    title: tr(context, ru: 'Взрывоопасные материалы', tg: 'Маводҳои тарканда'),
                     subtitle:
-                        'Аккумуляторы, хлопушки, салюты, зажигалки и т.д.',
+                        tr(context, ru: 'Аккумуляторы, хлопушки, салюты, зажигалки и т.д.', tg: 'Аккумулятор, петарда, салют, зажигалка ва ғайра.'),
                   ),
                   _CategoryTile(
                     icon: Icons.workspace_premium_outlined,
-                    title: 'Дорогостоящие товары',
-                    subtitle: 'Золото, серебро и другие ценные изделия.',
+                    title: tr(context, ru: 'Дорогостоящие товары', tg: 'Молҳои гаронбаҳо'),
+                    subtitle: tr(context, ru: 'Золото, серебро и другие ценные изделия.', tg: 'Тилло, нуқра ва дигар ашёи қиматбаҳо.'),
                   ),
                   _CategoryTile(
                     icon: Icons.no_drinks_outlined,
-                    title: 'Наркотические и психотропные вещества',
-                    subtitle: 'Любые запрещенные вещества.',
+                    title: tr(context, ru: 'Наркотические и психотропные вещества', tg: 'Маводи нашъадор ва психотропӣ'),
+                    subtitle: tr(context, ru: 'Любые запрещенные вещества.', tg: 'Ҳар гуна маводи манъшуда.'),
                   ),
                   _CategoryTile(
                     icon: Icons.medication_liquid_outlined,
-                    title: 'Продукты питания и медицинские товары',
+                    title: tr(context, ru: 'Продукты питания и медицинские товары', tg: 'Хӯрокворӣ ва молҳои тиббӣ'),
                     subtitle:
-                        'Еда, БАДы, лекарства, медицинские препараты и т.д.',
+                        tr(context, ru: 'Еда, БАДы, лекарства, медицинские препараты и т.д.', tg: 'Хӯрок, БАД, дору, маводи тиббӣ ва ғайра.'),
                   ),
                   SizedBox(height: 14),
                   _ImportantBlock(),
@@ -87,13 +88,13 @@ class _AlertHeader extends StatelessWidget {
           colors: [Color(0xFFF4511E), Color(0xFFE64A19)],
         ),
       ),
-      child: const Row(
+      child: Row(
         children: [
           Icon(Icons.report_problem_rounded, color: Colors.white, size: 28),
           SizedBox(width: 10),
           Expanded(
             child: Text(
-              'Товары, которые строго запрещены к отправке',
+              tr(context, ru: 'Товары, которые строго запрещены к отправке', tg: 'Молҳое, ки фиристоданашон қатъиян манъ аст'),
               style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w800,
@@ -181,7 +182,7 @@ class _ImportantBlock extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: const Color(0xFFFFCC80)),
       ),
-      child: const Column(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -189,7 +190,7 @@ class _ImportantBlock extends StatelessWidget {
               Icon(Icons.priority_high_rounded, color: Color(0xFFE65100)),
               SizedBox(width: 8),
               Text(
-                'ВАЖНО',
+                tr(context, ru: 'ВАЖНО', tg: 'МУҲИМ'),
                 style: TextStyle(
                   fontWeight: FontWeight.w800,
                   fontSize: 16,
@@ -200,12 +201,12 @@ class _ImportantBlock extends StatelessWidget {
           ),
           SizedBox(height: 8),
           Text(
-            '• Телефоны, планшеты, ноутбуки, компьютеры и подобные товары принимаются только по предварительному согласованию.',
+            tr(context, ru: '• Телефоны, планшеты, ноутбуки, компьютеры и подобные товары принимаются только по предварительному согласованию.', tg: '• Телефон, планшет, ноутбук, компютер ва молҳои монанд танҳо бо мувофиқаи пешакӣ қабул мешаванд.'),
             style: TextStyle(height: 1.3),
           ),
           SizedBox(height: 6),
           Text(
-            '• Если заказ оформлен без предупреждения, существует риск повреждения товара, и компания не несет ответственности за повреждения.',
+            tr(context, ru: '• Если заказ оформлен без предупреждения, существует риск повреждения товара, и компания не несет ответственности за повреждения.', tg: '• Агар фармоиш бе огоҳӣ расмӣ шавад, хавфи осеб вуҷуд дорад ва ширкат барои осеб ҷавобгар нест.'),
             style: TextStyle(height: 1.3),
           ),
         ],

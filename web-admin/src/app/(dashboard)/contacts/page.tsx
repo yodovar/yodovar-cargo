@@ -16,6 +16,7 @@ export default function ContactsPage() {
   const [items, setItems] = useState<Contact[]>([]);
   const [err, setErr] = useState('');
   const [loading, setLoading] = useState(true);
+  const [showCreate, setShowCreate] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -86,6 +87,7 @@ export default function ContactsPage() {
         }),
       });
       (e.target as HTMLFormElement).reset();
+      setShowCreate(false);
       await load();
     } catch (err) {
       setErr(err instanceof Error ? err.message : 'Ошибка');
@@ -113,27 +115,53 @@ export default function ContactsPage() {
         </div>
       )}
 
-      <form
-        onSubmit={create}
-        className="mt-10 space-y-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4"
-      >
-        <h3 className="font-semibold">Новый контакт</h3>
-        <div className="grid gap-2 sm:grid-cols-2">
-          <input name="key" className="rounded border px-3 py-2 text-sm" placeholder="key" required />
-          <input name="label" className="rounded border px-3 py-2 text-sm" placeholder="Подпись" required />
-          <input
-            name="usernameOrPhone"
-            className="rounded border px-3 py-2 text-sm"
-            placeholder="Username / телефон"
-            required
-          />
-          <input name="appUrl" className="rounded border px-3 py-2 text-sm" placeholder="app URL" required />
-          <input name="webUrl" className="rounded border px-3 py-2 text-sm sm:col-span-2" placeholder="web URL" required />
-        </div>
-        <button type="submit" className="rounded-lg bg-slate-800 px-4 py-2 text-sm text-white">
-          Создать
-        </button>
-      </form>
+      <div className="mt-8">
+        {!showCreate ? (
+          <button
+            type="button"
+            onClick={() => setShowCreate(true)}
+            className="inline-flex h-10 items-center justify-center rounded-lg bg-slate-800 px-4 text-sm font-medium text-white hover:bg-slate-900"
+          >
+            + Новый контакт
+          </button>
+        ) : (
+          <form
+            onSubmit={create}
+            className="space-y-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4"
+          >
+            <h3 className="font-semibold">Новый контакт</h3>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <input name="key" className="rounded border px-3 py-2 text-sm" placeholder="key" required />
+              <input name="label" className="rounded border px-3 py-2 text-sm" placeholder="Подпись" required />
+              <input
+                name="usernameOrPhone"
+                className="rounded border px-3 py-2 text-sm"
+                placeholder="Username / телефон"
+                required
+              />
+              <input name="appUrl" className="rounded border px-3 py-2 text-sm" placeholder="app URL" required />
+              <input
+                name="webUrl"
+                className="rounded border px-3 py-2 text-sm sm:col-span-2"
+                placeholder="web URL"
+                required
+              />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button type="submit" className="rounded-lg bg-slate-800 px-4 py-2 text-sm text-white">
+                Создать
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowCreate(false)}
+                className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700"
+              >
+                Отмена
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
     </div>
   );
 }
@@ -148,35 +176,73 @@ function ContactRow({
   onDelete: (key: string) => void;
 }) {
   const [c, setC] = useState(initial);
-  useEffect(() => setC(initial), [initial]);
+  const [editing, setEditing] = useState(false);
+  useEffect(() => {
+    setC(initial);
+    setEditing(false);
+  }, [initial]);
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-4">
-      <div className="flex justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-2">
         <span className="font-mono font-semibold">{c.key}</span>
-        <button type="button" onClick={() => onDelete(c.key)} className="text-sm text-orange-600">
-          Удалить
-        </button>
+        <div className="flex items-center gap-3">
+          {!editing && (
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className="text-sm text-slate-700 hover:underline"
+            >
+              Изменить
+            </button>
+          )}
+          <button type="button" onClick={() => onDelete(c.key)} className="text-sm text-orange-600">
+            Удалить
+          </button>
+        </div>
       </div>
-      <div className="mt-3 grid gap-2 sm:grid-cols-2">
-        {(['label', 'usernameOrPhone', 'appUrl', 'webUrl'] as const).map((field) => (
-          <label key={field} className="block text-sm">
-            <span className="text-slate-600">{field}</span>
-            <input
-              className="mt-1 w-full rounded border border-slate-300 px-2 py-1"
-              value={c[field]}
-              onChange={(e) => setC({ ...c, [field]: e.target.value })}
-            />
-          </label>
-        ))}
-      </div>
-      <button
-        type="button"
-        onClick={() => onSave(c)}
-        className="mt-3 rounded-lg bg-orange-600 px-4 py-2 text-sm text-white"
-      >
-        Сохранить
-      </button>
+      {!editing ? (
+        <div className="mt-3 grid gap-2 text-sm text-slate-700 sm:grid-cols-2">
+          <div><span className="text-slate-500">label:</span> {c.label}</div>
+          <div><span className="text-slate-500">usernameOrPhone:</span> {c.usernameOrPhone}</div>
+          <div className="sm:col-span-2"><span className="text-slate-500">appUrl:</span> {c.appUrl}</div>
+          <div className="sm:col-span-2"><span className="text-slate-500">webUrl:</span> {c.webUrl}</div>
+        </div>
+      ) : (
+        <>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            {(['label', 'usernameOrPhone', 'appUrl', 'webUrl'] as const).map((field) => (
+              <label key={field} className="block text-sm">
+                <span className="text-slate-600">{field}</span>
+                <input
+                  className="mt-1 w-full rounded border border-slate-300 px-2 py-1"
+                  value={c[field]}
+                  onChange={(e) => setC({ ...c, [field]: e.target.value })}
+                />
+              </label>
+            ))}
+          </div>
+          <div className="mt-3 flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => onSave(c)}
+              className="rounded-lg bg-orange-600 px-4 py-2 text-sm text-white"
+            >
+              Сохранить
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setC(initial);
+                setEditing(false);
+              }}
+              className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700"
+            >
+              Отмена
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

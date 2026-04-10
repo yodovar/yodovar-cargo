@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api_client.dart';
+import '../../core/lang.dart';
 import '../auth/auth_session.dart';
 
 const _channelEmojis = ['👍', '❤️', '🔥', '👏', '😮'];
@@ -49,7 +50,9 @@ class ChannelsScreen extends ConsumerWidget {
                 const SizedBox(height: 80),
                 FilledButton.tonal(
                   onPressed: () => ref.invalidate(channelFeedProvider),
-                  child: const Text('Ошибка загрузки канала. Повторить'),
+                  child: Text(
+                    tr(context, ru: 'Ошибка загрузки канала. Повторить', tg: 'Хатои боркунии канал. Такрор'),
+                  ),
                 ),
               ],
             ),
@@ -57,14 +60,14 @@ class ChannelsScreen extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(14, 10, 14, 20),
               children: [
                 Text(
-                  'Канал',
+                  tr(context, ru: 'Канал', tg: 'Канал'),
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.w800,
                       ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Новости и сообщения от администрации.',
+                  tr(context, ru: 'Новости и сообщения от администрации.', tg: 'Хабарҳо ва паёмҳо аз маъмурият.'),
                   style: TextStyle(color: Colors.grey.shade600),
                 ),
                 const SizedBox(height: 12),
@@ -76,7 +79,9 @@ class ChannelsScreen extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(color: Colors.grey.shade200),
                     ),
-                    child: const Text('Пока нет сообщений в канале.'),
+                    child: Text(
+                      tr(context, ru: 'Пока нет сообщений в канале.', tg: 'Ҳоло дар канал паём нест.'),
+                    ),
                   ),
                 ...items.map(
                   (item) => Padding(
@@ -251,7 +256,11 @@ class _ChannelPostCard extends ConsumerWidget {
     } on DioException {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Не удалось поставить реакцию')),
+          SnackBar(
+            content: Text(
+              tr(context, ru: 'Не удалось поставить реакцию', tg: 'Реаксия гузошта нашуд'),
+            ),
+          ),
         );
       }
     }

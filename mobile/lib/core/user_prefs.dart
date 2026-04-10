@@ -10,6 +10,7 @@ const _kAvatarRemoteVer = 'user_avatar_remote_ver';
 const _kPickupCityId = 'pickup_city_id';
 const _kNotificationsSeenAtMs = 'notifications_seen_at_ms';
 const _kChannelSeenAtMs = 'channel_seen_at_ms';
+const _kAppLanguage = 'app_language';
 
 /// Локальные предпочтения пользователя (имя/номер/аватар/выбранный пункт выдачи).
 class UserPrefs {
@@ -108,6 +109,11 @@ class UserPrefs {
   Future<void> markChannelSeenNow() =>
       setChannelSeenAtMs(DateTime.now().millisecondsSinceEpoch);
 
+  Future<void> setAppLanguageCode(String code) =>
+      _s.write(key: _kAppLanguage, value: code);
+
+  Future<String?> readAppLanguageCode() => _s.read(key: _kAppLanguage);
+
   Future<void> clearDisplayName() => _s.delete(key: _kDisplayName);
 
   Future<void> clearPhone() => _s.delete(key: _kPhone);
@@ -124,6 +130,8 @@ class UserPrefs {
       _s.delete(key: _kNotificationsSeenAtMs);
 
   Future<void> clearChannelSeenAtMs() => _s.delete(key: _kChannelSeenAtMs);
+
+  Future<void> clearAppLanguageCode() => _s.delete(key: _kAppLanguage);
 
   Future<void> clearAllAvatarLocal() async {
     await clearAvatarBase64();

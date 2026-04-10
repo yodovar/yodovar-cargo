@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/app_messenger.dart';
+import '../../core/lang.dart';
 import '../../core/tj_phone.dart';
 import 'auth_repository.dart';
 import 'auth_session.dart';
@@ -31,7 +32,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   String? _validatePassword(String? v) {
-    if ((v ?? '').length < 6) return 'Минимум 6 символов';
+    if ((v ?? '').length < 6) {
+      return tr(context, ru: 'Минимум 6 символов', tg: 'Ҳадди ақал 6 рамз');
+    }
     return null;
   }
 
@@ -52,8 +55,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       Navigator.of(context).popUntil((route) => route.isFirst);
       if (!mounted) return;
       appMessengerKey.currentState?.showSnackBar(
-        const SnackBar(
-          content: Text('Вы вошли в аккаунт'),
+        SnackBar(
+          content: Text(tr(context, ru: 'Вы вошли в аккаунт', tg: 'Шумо ба аккаунт даромадед')),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -73,9 +76,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return AuthShell(
-      title: 'Вход',
+      title: tr(context, ru: 'Вход', tg: 'Воридшавӣ'),
       subtitle:
-          'Номер Таджикистана (+992): 9 цифр без кода страны, затем пароль.',
+          tr(context, ru: 'Номер Таджикистана (+992): 9 цифр без кода страны, затем пароль.', tg: 'Рақами Тоҷикистон (+992): 9 рақам бе коди кишвар, пас рамз.'),
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(28, 0, 28, 24),
         child: Form(
@@ -98,7 +101,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 autofillHints: const [AutofillHints.password],
                 decoration: authInputDecoration(
                   context: context,
-                  label: 'Пароль',
+                  label: tr(context, ru: 'Пароль', tg: 'Рамз'),
                   suffixIcon: IconButton(
                     onPressed: () => setState(() => _obscure = !_obscure),
                     icon: Icon(
@@ -123,14 +126,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           color: Colors.white,
                         ),
                       )
-                    : const Text('Войти'),
+                    : Text(tr(context, ru: 'Войти', tg: 'Ворид шудан')),
               ),
               const SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    'Нет аккаунта? ',
+                    tr(context, ru: 'Нет аккаунта? ', tg: 'Аккаунт надоред? '),
                     style: TextStyle(color: Colors.grey.shade700),
                   ),
                   TextButton(
@@ -143,21 +146,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               ),
                             );
                           },
-                    child: const Text('Регистрация'),
+                    child: Text(tr(context, ru: 'Регистрация', tg: 'Бақайдгирӣ')),
                   ),
                 ],
               ),
               TextButton(
                 onPressed: () {
                   appMessengerKey.currentState?.showSnackBar(
-                    const SnackBar(
-                      content: Text('Восстановление пароля появится позже'),
+                    SnackBar(
+                      content: Text(tr(context, ru: 'Восстановление пароля появится позже', tg: 'Барқароркунии рамз баъдтар дастрас мешавад')),
                       behavior: SnackBarBehavior.floating,
                     ),
                   );
                 },
                 child: Text(
-                  'Забыли пароль?',
+                  tr(context, ru: 'Забыли пароль?', tg: 'Рамзро фаромӯш кардед?'),
                   style: TextStyle(
                     color: Colors.grey.shade600,
                     fontWeight: FontWeight.w500,

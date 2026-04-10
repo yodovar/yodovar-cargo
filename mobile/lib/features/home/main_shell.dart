@@ -104,6 +104,7 @@ class _MainShellState extends ConsumerState<MainShell>
 
   @override
   Widget build(BuildContext context) {
+    final isTg = ref.watch(appLanguageProvider) == AppLanguage.tg;
     final unreadChannel =
         ref.watch(unreadChannelPostsCountProvider).valueOrNull ?? 0;
     final useRail = useWideNavigation(context);
@@ -139,7 +140,7 @@ class _MainShellState extends ConsumerState<MainShell>
               Expanded(
                 child: _NavItem(
                   icon: Icons.home_rounded,
-                  label: 'Главная',
+                  label: isTg ? 'Асосӣ' : 'Главная',
                   selected: _index == 0,
                   onTap: () {
                     _goTab(0);
@@ -149,7 +150,7 @@ class _MainShellState extends ConsumerState<MainShell>
               Expanded(
                 child: _NavItem(
                   icon: Icons.list_alt_rounded,
-                  label: 'Заказы',
+                  label: isTg ? 'Фармоишҳо' : 'Заказы',
                   selected: _index == 1,
                   onTap: () {
                     _goTab(1);
@@ -159,7 +160,7 @@ class _MainShellState extends ConsumerState<MainShell>
               Expanded(
                 child: _NavItem(
                   icon: Icons.campaign_rounded,
-                  label: 'Канал',
+                  label: isTg ? 'Канал' : 'Канал',
                   selected: _index == 2,
                   badgeCount: unreadChannel,
                   onTap: () {
@@ -170,7 +171,7 @@ class _MainShellState extends ConsumerState<MainShell>
               Expanded(
                 child: _NavItem(
                   icon: Icons.person_rounded,
-                  label: 'Профиль',
+                  label: isTg ? 'Профил' : 'Профиль',
                   selected: _index == 3,
                   onTap: () {
                     _goTab(3);
@@ -212,13 +213,13 @@ class _MainShellState extends ConsumerState<MainShell>
                 fontSize: 12,
               ),
               destinations: [
-                const NavigationRailDestination(
-                  icon: Icon(Icons.home_rounded),
-                  label: Text('Главная'),
+                NavigationRailDestination(
+                  icon: const Icon(Icons.home_rounded),
+                  label: Text(isTg ? 'Асосӣ' : 'Главная'),
                 ),
-                const NavigationRailDestination(
-                  icon: Icon(Icons.list_alt_rounded),
-                  label: Text('Заказы'),
+                NavigationRailDestination(
+                  icon: const Icon(Icons.list_alt_rounded),
+                  label: Text(isTg ? 'Фармоишҳо' : 'Заказы'),
                 ),
                 NavigationRailDestination(
                   icon: _RailChannelIcon(
@@ -229,11 +230,13 @@ class _MainShellState extends ConsumerState<MainShell>
                     selected: true,
                     badgeCount: unreadChannel,
                   ),
-                  label: const Text('Канал'),
+                  label: Text(
+                    isTg ? 'Канал' : 'Канал',
+                  ),
                 ),
-                const NavigationRailDestination(
-                  icon: Icon(Icons.person_rounded),
-                  label: Text('Профиль'),
+                NavigationRailDestination(
+                  icon: const Icon(Icons.person_rounded),
+                  label: Text(isTg ? 'Профил' : 'Профиль'),
                 ),
               ],
             ),

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api_client.dart';
+import '../../core/lang.dart';
 import 'orders_screen.dart';
 
 class TrackingSearchScreen extends ConsumerStatefulWidget {
@@ -92,7 +93,11 @@ class _TrackingSearchScreenState extends ConsumerState<TrackingSearchScreen> {
 
       if (unique.isEmpty) {
         setState(() {
-          _errorText = 'По вашему трек-коду заказ не найден';
+          _errorText = tr(
+            context,
+            ru: 'По вашему трек-коду заказ не найден',
+            tg: 'Аз рӯи трек-коди шумо фармоиш ёфт нашуд',
+          );
         });
         return;
       }
@@ -100,7 +105,11 @@ class _TrackingSearchScreenState extends ConsumerState<TrackingSearchScreen> {
       setState(() => _results = unique);
     } on DioException {
       setState(() {
-        _errorText = 'Ошибка поиска. Проверьте интернет и повторите попытку.';
+        _errorText = tr(
+          context,
+          ru: 'Ошибка поиска. Проверьте интернет и повторите попытку.',
+          tg: 'Хатои ҷустуҷӯ. Интернетро санҷида боз кӯшиш кунед.',
+        );
       });
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -112,7 +121,7 @@ class _TrackingSearchScreenState extends ConsumerState<TrackingSearchScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF2F4F7),
       appBar: AppBar(
-        title: const Text('Поиск по трек-коду'),
+        title: Text(tr(context, ru: 'Поиск по трек-коду', tg: 'Ҷустуҷӯ бо трек-код')),
         backgroundColor: Colors.transparent,
       ),
       body: ListView(
@@ -134,7 +143,7 @@ class _TrackingSearchScreenState extends ConsumerState<TrackingSearchScreen> {
               _scheduleAutoSearch(_controller.text);
             },
             decoration: InputDecoration(
-              hintText: 'Например: INS123456',
+              hintText: tr(context, ru: 'Например: INS123456', tg: 'Масалан: INS123456'),
               prefixIcon: const Icon(Icons.search_rounded),
               filled: true,
               fillColor: Colors.white,
@@ -162,13 +171,13 @@ class _TrackingSearchScreenState extends ConsumerState<TrackingSearchScreen> {
                       height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Найти'),
+                  : Text(tr(context, ru: 'Найти', tg: 'Ёфтан')),
             ),
           ),
           if (!_searched && !_loading) ...[
             const SizedBox(height: 14),
             Text(
-              'Введите трек-код и нажмите "Найти".',
+              tr(context, ru: 'Введите трек-код и нажмите "Найти".', tg: 'Трек-кодро ворид карда "Ёфтан"-ро пахш кунед.'),
               style: TextStyle(color: Colors.grey.shade600),
             ),
           ],
@@ -185,7 +194,9 @@ class _TrackingSearchScreenState extends ConsumerState<TrackingSearchScreen> {
           if (_results.isNotEmpty) ...[
             const SizedBox(height: 14),
             Text(
-              _results.length == 1 ? 'Найденный заказ' : 'Найденные заказы',
+              _results.length == 1
+                  ? tr(context, ru: 'Найденный заказ', tg: 'Фармоиши ёфтшуда')
+                  : tr(context, ru: 'Найденные заказы', tg: 'Фармоишҳои ёфтшуда'),
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 8),
@@ -329,12 +340,16 @@ class _SearchResultCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Статус: ${_statusLabel(order.status)}',
+                    tr(
+                      context,
+                      ru: 'Статус: ${_statusLabel(context, order.status)}',
+                      tg: 'Ҳолат: ${_statusLabel(context, order.status)}',
+                    ),
                     style: TextStyle(color: Colors.grey.shade700),
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'Вес: $weightKg кг',
+                    tr(context, ru: 'Вес: $weightKg кг', tg: 'Вазн: $weightKg кг'),
                     style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
                   ),
                 ],
@@ -355,7 +370,7 @@ class _OrderDetailsSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final steps = _buildTimeline(order);
+    final steps = _buildTimeline(context, order);
     return DraggableScrollableSheet(
       initialChildSize: 0.76,
       minChildSize: 0.48,
@@ -383,7 +398,7 @@ class _OrderDetailsSheet extends StatelessWidget {
             Row(
               children: [
                 Text(
-                  'Трек-код',
+                  tr(context, ru: 'Трек-код', tg: 'Трек-код'),
                   style: TextStyle(
                     color: Colors.grey.shade500,
                     fontWeight: FontWeight.w600,
@@ -403,9 +418,9 @@ class _OrderDetailsSheet extends StatelessWidget {
             const SizedBox(height: 10),
             const Divider(height: 1),
             const SizedBox(height: 12),
-            const Text(
-              'Навигация по статусу',
-              style: TextStyle(fontWeight: FontWeight.w700),
+            Text(
+              tr(context, ru: 'Навигация по статусу', tg: 'Равиши ҳолат'),
+              style: const TextStyle(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 10),
             ...steps,
@@ -493,26 +508,27 @@ class _TimelineStepRow extends StatelessWidget {
   }
 }
 
-String _statusLabel(String status) {
+String _statusLabel(BuildContext context, String status) {
+  final tg = isTajik(context);
   switch (status) {
     case 'received_china':
-      return 'Получено в Китае';
+      return tg ? 'Дар Чин қабул шуд' : 'Получено в Китае';
     case 'in_transit':
-      return 'В пути';
+      return tg ? 'Дар роҳ' : 'В пути';
     case 'sorting':
-      return 'Сортировка';
+      return tg ? 'Ҷудокунии бор' : 'Сортировка';
     case 'ready_pickup':
-      return 'Готово к выдаче';
+      return tg ? 'Омода барои супоридан' : 'Готово к выдаче';
     case 'with_courier':
-      return 'Передан курьеру';
+      return tg ? 'Ба хаткашон дода шуд' : 'Передан курьеру';
     case 'completed':
-      return 'Полученные';
+      return tg ? 'Қабул шуд' : 'Полученные';
     default:
       return status;
   }
 }
 
-List<Widget> _buildTimeline(OrderRowItem order) {
+List<Widget> _buildTimeline(BuildContext context, OrderRowItem order) {
   const stepKeys = [
     'created',
     'received_china',
@@ -545,11 +561,33 @@ List<Widget> _buildTimeline(OrderRowItem order) {
   for (var i = 0; i < stepKeys.length; i++) {
     final key = stepKeys[i];
     final pair = stepTitles[key]!;
+    final title = isTajik(context)
+        ? ({
+            'created': 'Фармоиш эҷод шуд',
+            'received_china': 'Дар Чин қабул шуд',
+            'in_transit': 'Дар роҳ',
+            'sorting': 'Ҷудокунии бор',
+            'ready_pickup': 'Омода барои супоридан',
+            'with_courier': 'Ба хаткашон дода шуд',
+            'completed': 'Гирифта шуд',
+          }[key]!)
+        : pair.$1;
+    final subtitle = isTajik(context)
+        ? ({
+            'created': 'Дархост сабт шуд',
+            'received_china': 'Дар анбор қабул шуд',
+            'in_transit': 'Интиқоли байналмилалӣ',
+            'sorting': 'Коркард дар марказ',
+            'ready_pickup': 'Фармоишро гирифтан мумкин',
+            'with_courier': 'Хаткашон мерасонад',
+            'completed': 'Фармоиш анҷом шуд',
+          }[key]!)
+        : pair.$2;
     list.add(
       _TimelineStepRow(
         active: i <= currentRank,
-        title: pair.$1,
-        subtitle: pair.$2,
+        title: title,
+        subtitle: subtitle,
         showLine: i != stepKeys.length - 1,
       ),
     );

@@ -8,6 +8,8 @@ type ClientLookup = {
   name: string;
   phone: string;
   clientCode: string;
+  /** false = клиент есть в базе, но кода ещё нет (после первого входа в приложение появится). */
+  hasClientCode: boolean;
 };
 
 type LookupByCodeResponse = {
@@ -77,6 +79,7 @@ export function StatusFlowPage({
     if (!normalizedSearch) {
       setResults([]);
       setSearchErr('');
+      setSearching(false);
       return;
     }
     setSearching(true);
@@ -95,26 +98,33 @@ export function StatusFlowPage({
             name: byCode.name ?? 'Без имени',
             phone: byCode.phone ?? '',
             clientCode: byCode.clientCode,
+            hasClientCode: true,
           });
         }
       }
 
+      const qParam = normalizedSearch
+        ? `&q=${encodeURIComponent(normalizedSearch)}`
+        : '';
       const users = await apiFetch<UsersResponse>(
-        `/admin/users?take=20&role=client&q=${encodeURIComponent(normalizedSearch)}`,
+        `/admin/users?take=60&role=client${qParam}`,
       );
       for (const u of users.items) {
-        if (!u.clientCode) continue;
         if (u.role !== 'client') continue;
         if (list.some((x) => x.id === u.id)) continue;
+        const code = u.clientCode?.trim() ?? '';
         list.push({
           id: u.id,
           name: u.name || 'Без имени',
           phone: u.phone,
-          clientCode: u.clientCode,
+          clientCode: code,
+          hasClientCode: code.length > 0,
         });
       }
       setResults(list);
-      if (list.length === 0) setSearchErr('Клиент не найден');
+      if (list.length === 0 && normalizedSearch) {
+        setSearchErr('Клиент не найден');
+      }
     } catch (e) {
       setSearchErr(e instanceof Error ? e.message : 'Ошибка поиска');
     } finally {
@@ -163,26 +173,47 @@ export function StatusFlowPage({
   }
 
   async function submitAll() {
-    if (!isStatusOnly && !selected) {
-      setCommonErr('Сначала выберите клиента');
-      return;
-    }
     if (trackingCodes.length === 0) {
       setCommonErr('Добавьте хотя бы один трек-код');
       return;
     }
+    const selectedClientCode = selected?.clientCode?.trim() ?? '';
+    if (mode === 'intake' && selected && !selected.hasClientCode) {
+      setCommonErr(
+        'У клиента ещё нет кода выдачи. Пусть один раз войдёт в приложение или проверьте карточку в разделе «Пользователи».',
+      );
+      return;
+    }
+    if (mode === 'intake' && !selectedClientCode) {
+      if (!normalizedSearch) {
+        setCommonErr('Выберите клиента, либо введите имя/телефон в поле поиска');
+        return;
+      }
+    }
     setSubmitting(true);
     setCommonErr('');
     const out: FlowResult[] = [];
+    const rawGuest = normalizedSearch;
+    const digits = rawGuest.replace(/\D/g, '');
+    const guestPhone = digits.length >= 5 ? rawGuest : undefined;
+    const guestName = digits.length >= 5 ? undefined : rawGuest;
+
     for (const code of trackingCodes) {
       try {
         if (mode === 'intake') {
+          const body: Record<string, unknown> = {
+            trackingCode: code,
+            ...(selectedClientCode ? { clientCode: selectedClientCode } : {}),
+            ...(selectedClientCode
+              ? {}
+              : {
+                  ...(guestName ? { guestName } : {}),
+                  ...(guestPhone ? { guestPhone } : {}),
+                }),
+          };
           await apiFetch('/warehouse-cn/intake', {
             method: 'POST',
-            body: JSON.stringify({
-              trackingCode: code,
-              clientCode: selected.clientCode,
-            }),
+            body: JSON.stringify(body),
           });
           out.push({ trackingCode: code, ok: true, message: 'Добавлено в Китае' });
         } else {
@@ -204,7 +235,7 @@ export function StatusFlowPage({
 
   function pickClient(c: ClientLookup) {
     setSelected(c);
-    setSearch(c.clientCode);
+    setSearch(c.clientCode || c.phone || c.name);
     setResults([]);
     setSearchErr('');
     setResultLog([]);
@@ -226,7 +257,7 @@ export function StatusFlowPage({
       {!isStatusOnly && (
         <section className="rounded-xl border border-slate-200 bg-white p-4">
           <label className="block text-sm font-medium text-slate-700">
-            Клиент (код или номер телефона)
+            Клиент (код/имя/телефон)
           </label>
           <input
             value={search}
@@ -234,10 +265,10 @@ export function StatusFlowPage({
               setSearch(e.target.value);
               setSelected(null);
             }}
-            placeholder="Например: AP789 или +992..."
+            placeholder="Например: SF0036, Furuzon, +992... (если не найден, будет ручной клиент)"
             className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2"
           />
-          <p className="mt-1 text-xs text-slate-500">{searching ? 'Поиск...' : 'AJAX-поиск по базе'}</p>
+          <p className="mt-1 text-xs text-slate-500">{searching ? 'Поиск...' : 'Поиск по базе'}</p>
           {searchErr && <p className="mt-2 text-sm text-orange-700">{searchErr}</p>}
           {results.length > 0 && (
             <div className="mt-3 overflow-hidden rounded-lg border border-slate-200">
@@ -251,7 +282,11 @@ export function StatusFlowPage({
                   <span className="text-sm">
                     {c.name} · {c.phone}
                   </span>
-                  <span className="font-mono text-xs text-slate-600">{c.clientCode}</span>
+                  <span
+                    className={`font-mono text-xs ${c.hasClientCode ? 'text-slate-600' : 'text-orange-600'}`}
+                  >
+                    {c.hasClientCode ? c.clientCode : 'нет кода'}
+                  </span>
                 </button>
               ))}
             </div>
@@ -263,12 +298,23 @@ export function StatusFlowPage({
         <div className="flex items-center justify-between gap-2">
           <h2 className="text-lg font-semibold text-slate-900">Трек-коды</h2>
           {selected ? (
-            <span className="rounded bg-emerald-50 px-2 py-1 text-xs text-emerald-700">
-              Клиент: {selected.name} ({selected.clientCode})
+            <span
+              className={`rounded px-2 py-1 text-xs ${
+                selected.hasClientCode
+                  ? 'bg-emerald-50 text-emerald-700'
+                  : 'bg-orange-50 text-orange-800'
+              }`}
+            >
+              Клиент: {selected.name}
+              {selected.hasClientCode ? ` (${selected.clientCode})` : ' — код не назначен'}
             </span>
           ) : (
             <span className="text-xs text-slate-500">
-              {isStatusOnly ? 'Клиент определится по трек-коду' : 'Клиент не выбран'}
+              {isStatusOnly
+                ? 'Клиент определится по трек-коду'
+                : normalizedSearch
+                  ? `Ручной клиент: ${normalizedSearch}`
+                  : 'Клиент не выбран'}
             </span>
           )}
         </div>

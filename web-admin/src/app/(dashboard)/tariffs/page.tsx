@@ -20,6 +20,7 @@ export default function TariffsPage() {
   const [items, setItems] = useState<Tariff[]>([]);
   const [err, setErr] = useState('');
   const [loading, setLoading] = useState(true);
+  const [showCreate, setShowCreate] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -93,7 +94,26 @@ export default function TariffsPage() {
         </div>
       )}
 
-      <CreateTariffForm onCreated={() => void load()} onError={setErr} />
+      <div className="mt-8">
+        {!showCreate ? (
+          <button
+            type="button"
+            onClick={() => setShowCreate(true)}
+            className="inline-flex h-10 items-center justify-center rounded-lg bg-slate-800 px-4 text-sm font-medium text-white hover:bg-slate-900"
+          >
+            + Новый тариф
+          </button>
+        ) : (
+          <CreateTariffForm
+            onCreated={() => {
+              setShowCreate(false);
+              void load();
+            }}
+            onCancel={() => setShowCreate(false)}
+            onError={setErr}
+          />
+        )}
+      </div>
     </div>
   );
 }
@@ -111,9 +131,11 @@ function TariffEditor({
   const [detailsJson, setDetailsJson] = useState(() =>
     JSON.stringify(initial.details, null, 2),
   );
+  const [editing, setEditing] = useState(false);
   useEffect(() => {
     setT(initial);
     setDetailsJson(JSON.stringify(initial.details, null, 2));
+    setEditing(false);
   }, [initial]);
 
   function handleSave() {
@@ -136,63 +158,100 @@ function TariffEditor({
     <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="font-mono text-lg font-semibold text-slate-900">{t.key}</h2>
-        <button
-          type="button"
-          onClick={() => onDelete(t.key)}
-          className="text-sm text-orange-600 hover:underline"
-        >
-          Удалить
-        </button>
+        <div className="flex items-center gap-3">
+          {!editing && (
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className="text-sm text-slate-700 hover:underline"
+            >
+              Изменить
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => onDelete(t.key)}
+            className="text-sm text-orange-600 hover:underline"
+          >
+            Удалить
+          </button>
+        </div>
       </div>
-      <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <Field label="Название" value={t.title} onChange={(v) => setT({ ...t, title: v })} />
-        <Field
-          label="$/кг"
-          type="number"
-          value={String(t.pricePerKgUsd)}
-          onChange={(v) => setT({ ...t, pricePerKgUsd: Number(v) })}
-        />
-        <Field
-          label="$/м³"
-          type="number"
-          value={String(t.pricePerCubicUsd)}
-          onChange={(v) => setT({ ...t, pricePerCubicUsd: Number(v) })}
-        />
-        <Field
-          label="Мин. вес (г)"
-          type="number"
-          value={String(t.minChargeWeightG)}
-          onChange={(v) => setT({ ...t, minChargeWeightG: Number(v) })}
-        />
-        <Field
-          label="ETA min (дн)"
-          type="number"
-          value={String(t.etaDaysMin)}
-          onChange={(v) => setT({ ...t, etaDaysMin: Number(v) })}
-        />
-        <Field
-          label="ETA max (дн)"
-          type="number"
-          value={String(t.etaDaysMax)}
-          onChange={(v) => setT({ ...t, etaDaysMax: Number(v) })}
-        />
-      </div>
-      <label className="mt-4 block text-sm">
-        <span className="text-slate-600">Детали (JSON-массив объектов icon / text)</span>
-        <textarea
-          className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-xs"
-          rows={8}
-          value={detailsJson}
-          onChange={(e) => setDetailsJson(e.target.value)}
-        />
-      </label>
-      <button
-        type="button"
-        onClick={handleSave}
-        className="mt-3 rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700"
-      >
-        Сохранить
-      </button>
+      {!editing ? (
+        <div className="mt-3 grid gap-2 text-sm text-slate-700 sm:grid-cols-2 lg:grid-cols-3">
+          <div><span className="text-slate-500">Название:</span> {t.title}</div>
+          <div><span className="text-slate-500">$/кг:</span> {t.pricePerKgUsd}</div>
+          <div><span className="text-slate-500">$/м³:</span> {t.pricePerCubicUsd}</div>
+          <div><span className="text-slate-500">Мин. вес:</span> {t.minChargeWeightG} г</div>
+          <div><span className="text-slate-500">ETA:</span> {t.etaDaysMin}-{t.etaDaysMax} дн</div>
+          <div><span className="text-slate-500">Деталей:</span> {t.details.length}</div>
+        </div>
+      ) : (
+        <>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <Field label="Название" value={t.title} onChange={(v) => setT({ ...t, title: v })} />
+            <Field
+              label="$/кг"
+              type="number"
+              value={String(t.pricePerKgUsd)}
+              onChange={(v) => setT({ ...t, pricePerKgUsd: Number(v) })}
+            />
+            <Field
+              label="$/м³"
+              type="number"
+              value={String(t.pricePerCubicUsd)}
+              onChange={(v) => setT({ ...t, pricePerCubicUsd: Number(v) })}
+            />
+            <Field
+              label="Мин. вес (г)"
+              type="number"
+              value={String(t.minChargeWeightG)}
+              onChange={(v) => setT({ ...t, minChargeWeightG: Number(v) })}
+            />
+            <Field
+              label="ETA min (дн)"
+              type="number"
+              value={String(t.etaDaysMin)}
+              onChange={(v) => setT({ ...t, etaDaysMin: Number(v) })}
+            />
+            <Field
+              label="ETA max (дн)"
+              type="number"
+              value={String(t.etaDaysMax)}
+              onChange={(v) => setT({ ...t, etaDaysMax: Number(v) })}
+            />
+          </div>
+          <label className="mt-4 block text-sm">
+            <span className="text-slate-600">Детали (JSON-массив объектов icon / text)</span>
+            <textarea
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-xs"
+              rows={8}
+              value={detailsJson}
+              onChange={(e) => setDetailsJson(e.target.value)}
+            />
+          </label>
+          <div className="mt-3 flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleSave}
+              className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700"
+            >
+              Сохранить
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setT(initial);
+                setDetailsJson(JSON.stringify(initial.details, null, 2));
+                setEditing(false);
+              }}
+              className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700"
+            >
+              Отмена
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -223,9 +282,11 @@ function Field({
 
 function CreateTariffForm({
   onCreated,
+  onCancel,
   onError,
 }: {
   onCreated: () => void;
+  onCancel: () => void;
   onError: (s: string) => void;
 }) {
   const [key, setKey] = useState('');
@@ -261,7 +322,7 @@ function CreateTariffForm({
   }
 
   return (
-    <div className="mt-10 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4">
+    <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4">
       <h3 className="font-semibold text-slate-900">Новый тариф</h3>
       <form onSubmit={submit} className="mt-3 space-y-3">
         <input
@@ -284,12 +345,21 @@ function CreateTariffForm({
           value={jsonDetails}
           onChange={(e) => setJsonDetails(e.target.value)}
         />
-        <button
-          type="submit"
-          className="rounded-lg bg-slate-800 px-4 py-2 text-sm text-white hover:bg-slate-900"
-        >
-          Создать (цены по умолчанию, отредактируйте после)
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="submit"
+            className="rounded-lg bg-slate-800 px-4 py-2 text-sm text-white hover:bg-slate-900"
+          >
+            Создать (цены по умолчанию)
+          </button>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700"
+          >
+            Отмена
+          </button>
+        </div>
       </form>
     </div>
   );

@@ -8,6 +8,14 @@ abstract final class AppTheme {
   static const Color surface = Color(0xFFFAFAFA);
 
   static ThemeData get light {
+    final cjkFamily = GoogleFonts.notoSansSc().fontFamily;
+    final fallbackFamilies = <String>[
+      if (cjkFamily != null && cjkFamily.isNotEmpty) cjkFamily,
+      'Noto Sans SC',
+      'Noto Sans TC',
+      'Noto Sans CJK SC',
+      'sans-serif',
+    ];
     final scheme = ColorScheme.fromSeed(
       seedColor: brandRed,
       brightness: Brightness.light,
@@ -18,6 +26,7 @@ abstract final class AppTheme {
       useMaterial3: true,
       colorScheme: scheme,
       scaffoldBackgroundColor: surface,
+      fontFamilyFallback: fallbackFamilies,
       textTheme: GoogleFonts.notoSansTextTheme(),
       primaryTextTheme: GoogleFonts.notoSansTextTheme(),
       appBarTheme: const AppBarTheme(

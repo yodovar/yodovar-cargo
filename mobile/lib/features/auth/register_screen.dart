@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/app_messenger.dart';
+import '../../core/lang.dart';
 import '../../core/tj_phone.dart';
 import 'auth_repository.dart';
 import 'auth_shell.dart';
@@ -36,17 +37,23 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   }
 
   String? _validateName(String? v) {
-    if ((v ?? '').trim().length < 2) return 'Как к вам обращаться?';
+    if ((v ?? '').trim().length < 2) {
+      return tr(context, ru: 'Как к вам обращаться?', tg: 'Шуморо чӣ тавр муроҷиат кунем?');
+    }
     return null;
   }
 
   String? _validatePassword(String? v) {
-    if ((v ?? '').length < 6) return 'Минимум 6 символов';
+    if ((v ?? '').length < 6) {
+      return tr(context, ru: 'Минимум 6 символов', tg: 'Ҳадди ақал 6 рамз');
+    }
     return null;
   }
 
   String? _validateConfirm(String? v) {
-    if (v != _password.text) return 'Пароли не совпадают';
+    if (v != _password.text) {
+      return tr(context, ru: 'Пароли не совпадают', tg: 'Рамзҳо мувофиқ нестанд');
+    }
     return null;
   }
 
@@ -85,9 +92,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return AuthShell(
-      title: 'Регистрация',
+      title: tr(context, ru: 'Регистрация', tg: 'Бақайдгирӣ'),
       subtitle:
-          'Номер только Таджикистан (+992). Затем подтверждение по SMS-коду.',
+          tr(context, ru: 'Номер только Таджикистан (+992). Затем подтверждение по SMS-коду.', tg: 'Танҳо рақами Тоҷикистон (+992). Баъдан тасдиқ бо SMS-код.'),
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(28, 0, 28, 24),
         child: Form(
@@ -102,8 +109,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 autofillHints: const [AutofillHints.name],
                 decoration: authInputDecoration(
                   context: context,
-                  label: 'Имя',
-                  hint: 'Как к вам обращаться',
+                  label: tr(context, ru: 'Имя', tg: 'Ном'),
+                  hint: tr(context, ru: 'Как к вам обращаться', tg: 'Шуморо чӣ тавр муроҷиат кунем'),
                 ),
                 validator: _validateName,
               ),
@@ -122,7 +129,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 autofillHints: const [AutofillHints.newPassword],
                 decoration: authInputDecoration(
                   context: context,
-                  label: 'Пароль',
+                  label: tr(context, ru: 'Пароль', tg: 'Рамз'),
                   suffixIcon: IconButton(
                     onPressed: () => setState(() => _obscure = !_obscure),
                     icon: Icon(
@@ -144,7 +151,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 autofillHints: const [AutofillHints.newPassword],
                 decoration: authInputDecoration(
                   context: context,
-                  label: 'Повторите пароль',
+                  label: tr(context, ru: 'Повторите пароль', tg: 'Рамзро такрор кунед'),
                   suffixIcon: IconButton(
                     onPressed: () => setState(() => _obscure2 = !_obscure2),
                     icon: Icon(
@@ -169,14 +176,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           color: Colors.white,
                         ),
                       )
-                    : const Text('Получить код в SMS'),
+                    : Text(tr(context, ru: 'Получить код в SMS', tg: 'Гирифтани код тавассути SMS')),
               ),
               const SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    'Уже есть аккаунт? ',
+                    tr(context, ru: 'Уже есть аккаунт? ', tg: 'Аллакай аккаунт доред? '),
                     style: TextStyle(color: Colors.grey.shade700),
                   ),
                   TextButton(
@@ -189,7 +196,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               ),
                             );
                           },
-                    child: const Text('Войти'),
+                    child: Text(tr(context, ru: 'Войти', tg: 'Ворид шудан')),
                   ),
                 ],
               ),

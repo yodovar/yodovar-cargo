@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/app_theme.dart';
 import '../../core/api_client.dart';
+import '../../core/lang.dart';
 import '../../core/responsive.dart';
 import 'tariffs_screen.dart';
 
@@ -29,7 +30,7 @@ class SupportScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF2F4F7),
       appBar: AppBar(
-        title: const Text('Поддержка'),
+        title: Text(tr(context, ru: 'Поддержка', tg: 'Дастгирӣ')),
         backgroundColor: Colors.transparent,
       ),
       body: SafeArea(
@@ -59,11 +60,11 @@ class SupportScreen extends ConsumerWidget {
                         ),
                       ],
                     ),
-                    child: const Column(
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Мы всегда на связи',
+                          tr(context, ru: 'Мы всегда на связи', tg: 'Мо ҳамеша дар тамосем'),
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 22,
@@ -72,7 +73,11 @@ class SupportScreen extends ConsumerWidget {
                         ),
                         SizedBox(height: 6),
                         Text(
-                          'Выберите удобный канал: мессенджеры, соцсети или звонок.',
+                          tr(
+                            context,
+                            ru: 'Выберите удобный канал: мессенджеры, соцсети или звонок.',
+                            tg: 'Канали мувофиқро интихоб кунед: мессенҷер, шабака ё занг.',
+                          ),
                           style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w500,
@@ -88,22 +93,22 @@ class SupportScreen extends ConsumerWidget {
                       padding: EdgeInsets.symmetric(vertical: 24),
                       child: Center(child: CircularProgressIndicator()),
                     ),
-                    error: (_, __) => const _InfoBlock(
-                      title: 'Контакты временно недоступны',
+                    error: (_, __) => _InfoBlock(
+                      title: tr(context, ru: 'Контакты временно недоступны', tg: 'Тамосҳо муваққатан дастнорасанд'),
                       lines: [
-                        'Не удалось загрузить контакты из админ-панели.',
-                        'Проверьте интернет и попробуйте снова.',
+                        tr(context, ru: 'Не удалось загрузить контакты из админ-панели.', tg: 'Боркунии тамосҳо аз панели админ нашуд.'),
+                        tr(context, ru: 'Проверьте интернет и попробуйте снова.', tg: 'Интернетро санҷида боз кӯшиш кунед.'),
                       ],
                       accent: Color(0xFFE35A64),
                       icon: Icons.wifi_off_rounded,
                     ),
                     data: (items) {
                       if (items.isEmpty) {
-                        return const _InfoBlock(
-                          title: 'Контакты еще не добавлены',
+                        return _InfoBlock(
+                          title: tr(context, ru: 'Контакты еще не добавлены', tg: 'Тамосҳо ҳанӯз илова нашудаанд'),
                           lines: [
-                            'Админ пока не заполнил контакты в веб-панели.',
-                            'Зайдите позже или обратитесь к менеджеру.',
+                            tr(context, ru: 'Админ пока не заполнил контакты в веб-панели.', tg: 'Админ ҳоло тамосҳоро дар веб-панел пур накардааст.'),
+                            tr(context, ru: 'Зайдите позже или обратитесь к менеджеру.', tg: 'Баъдтар ворид шавед ё ба мудир муроҷиат кунед.'),
                           ],
                           accent: Color(0xFF8C6BFF),
                           icon: Icons.info_outline_rounded,
@@ -121,12 +126,12 @@ class SupportScreen extends ConsumerWidget {
                     },
                   ),
                   const SizedBox(height: 12),
-                  const _InfoBlock(
-                    title: 'Как быстрее получить ответ',
+                  _InfoBlock(
+                    title: tr(context, ru: 'Как быстрее получить ответ', tg: 'Чӣ тавр зудтар ҷавоб гирифтан'),
                     lines: [
-                      'Укажите трек-код и кратко опишите вопрос.',
-                      'В рабочее время отвечаем обычно за 5-15 минут.',
-                      'Срочные вопросы лучше отправлять в WhatsApp/Telegram.',
+                      tr(context, ru: 'Укажите трек-код и кратко опишите вопрос.', tg: 'Трек-кодро нависед ва саволро кӯтоҳ шарҳ диҳед.'),
+                      tr(context, ru: 'В рабочее время отвечаем обычно за 5-15 минут.', tg: 'Дар вақти корӣ одатан дар 5-15 дақиқа ҷавоб медиҳем.'),
+                      tr(context, ru: 'Срочные вопросы лучше отправлять в WhatsApp/Telegram.', tg: 'Саволҳои таъҷилиро беҳтар аст ба WhatsApp/Telegram фиристед.'),
                     ],
                     accent: Color(0xFF1EB980),
                     icon: Icons.tips_and_updates_rounded,
@@ -145,7 +150,9 @@ class SupportScreen extends ConsumerWidget {
     if (ok || !context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Не удалось открыть $label'),
+        content: Text(
+          tr(context, ru: 'Не удалось открыть $label', tg: '$label кушода нашуд'),
+        ),
         behavior: SnackBarBehavior.floating,
       ),
     );

@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import '../../core/app_theme.dart';
+import '../../core/lang.dart';
 import '../../core/profile_avatar_display.dart';
 import '../../core/profile_avatar_url.dart';
 import '../../core/user_prefs.dart';
@@ -69,6 +70,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final prefs = ref.watch(userPrefsProvider);
+    final isTg = ref.watch(appLanguageProvider) == AppLanguage.tg;
 
     return ColoredBox(
       color: const Color(0xFFF2F4F7),
@@ -87,7 +89,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               padding: const EdgeInsets.all(20),
               children: [
                 Text(
-                  'Профиль',
+                  isTg ? 'Профил' : 'Профиль',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.w800,
                       ),
@@ -113,12 +115,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
                 const SizedBox(height: 12),
                 _ProfileSection(
-                  title: 'Сервисы',
+                  title: isTg ? 'Хизматҳо' : 'Сервисы',
                   children: [
                     _ActionTile(
                       icon: Icons.settings_outlined,
-                      title: 'Настройки',
-                      subtitle: 'Выход и удаление аккаунта',
+                      title: isTg ? 'Танзимот' : 'Настройки',
+                      subtitle: isTg
+                          ? 'Баромад ва нест кардани аккаунт'
+                          : 'Выход и удаление аккаунта',
                       onTap: () {
                         Navigator.of(context).push(
                           MaterialPageRoute<void>(
@@ -164,12 +168,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
                 const SizedBox(height: 12),
                 _ProfileSection(
-                  title: 'Полезное',
+                  title: isTg ? 'Муфид' : 'Полезное',
                   children: [
                     _ActionTile(
                       icon: Icons.do_not_disturb_on_outlined,
-                      title: 'Список запрещенных товаров',
-                      subtitle: 'Что нельзя отправлять',
+                      title: isTg
+                          ? 'Рӯйхати молҳои манъшуда'
+                          : 'Список запрещенных товаров',
+                      subtitle: isTg
+                          ? 'Чиро фиристодан манъ аст'
+                          : 'Что нельзя отправлять',
                       onTap: () {
                         Navigator.of(context).push(
                           MaterialPageRoute<void>(
@@ -196,8 +204,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   static void _showSoon(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Раздел скоро будет доступен'),
+      SnackBar(
+        content: Text(
+          tr(context, ru: 'Раздел скоро будет доступен', tg: 'Қисм ба зудӣ дастрас мешавад'),
+        ),
         behavior: SnackBarBehavior.floating,
       ),
     );

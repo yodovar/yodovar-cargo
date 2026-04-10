@@ -5,6 +5,7 @@ class PickupPoint {
     required this.receiver,
     required this.phoneCn,
     required this.warehouse,
+    this.addressTemplate,
   });
 
   final String id;
@@ -12,6 +13,41 @@ class PickupPoint {
   final String receiver;
   final String phoneCn;
   final String warehouse;
+  final String? addressTemplate;
+
+  factory PickupPoint.fromJson(Map<String, dynamic> json) {
+    final key = (json['key'] as String? ?? '').trim();
+    final city = (json['city'] as String? ?? '').trim();
+    final template = (json['addressTemplate'] as String? ?? '').trim();
+    final rendered = _renderTemplate(
+      template: template,
+      clientCode: '{{clientCode}}',
+      clientName: '{{clientName}}',
+      clientPhone: '{{clientPhone}}',
+    );
+    final lines = rendered.split('\n');
+    String receiver = '';
+    String phone = '';
+    String warehouse = rendered;
+    for (final line in lines) {
+      final t = line.trim();
+      if (t.startsWith('收货人:') || t.toLowerCase().startsWith('receiver:')) {
+        receiver = t.split(':').skip(1).join(':').trim();
+      } else if (t.startsWith('手机号:') || t.toLowerCase().startsWith('phone:')) {
+        phone = t.split(':').skip(1).join(':').trim();
+      }
+    }
+    if (receiver.isEmpty) receiver = city.toUpperCase();
+    if (phone.isEmpty) phone = '00000000000';
+    return PickupPoint(
+      id: key.isEmpty ? city.toLowerCase() : key,
+      city: city.isEmpty ? key : city,
+      receiver: receiver,
+      phoneCn: phone,
+      warehouse: warehouse,
+      addressTemplate: template.isEmpty ? null : template,
+    );
+  }
 }
 
 const pickupPoints = <PickupPoint>[
@@ -84,11 +120,46 @@ String pickupAddressText({
   required PickupPoint point,
   required String userName,
   required String userPhone,
+  String clientCode = '',
+  bool isTajik = false,
 }) {
-  final name = userName.trim().isEmpty ? 'Пользователь' : userName.trim();
+  final name = userName.trim().isEmpty
+      ? (isTajik ? 'Корбар' : 'Пользователь')
+      : userName.trim();
   final phone = userPhone.trim().isEmpty ? '+992' : userPhone.trim();
-  return '收货人: ${point.receiver}\n'
-      '手机号: ${point.phoneCn}\n'
+
+  // For admin-managed pickup points use exact template from backend.
+  final backendTemplate = point.addressTemplate?.trim() ?? '';
+  if (backendTemplate.isNotEmpty) {
+    return _renderTemplate(
+      template: backendTemplate,
+      clientCode: clientCode.trim().isEmpty ? '-----' : clientCode.trim(),
+      clientName: name,
+      clientPhone: phone,
+    );
+  }
+
+  // Fallback for legacy hardcoded points.
+  final template = '${isTajik ? 'Қабулкунанда' : '收货人'}: ${point.receiver}\n'
+      '${isTajik ? 'Рақами телефон' : '手机号'}: ${point.phoneCn}\n'
       '${point.warehouse}\n'
       '$name, $phone';
+  return _renderTemplate(
+    template: template,
+    clientCode: clientCode.trim().isEmpty ? '-----' : clientCode.trim(),
+    clientName: name,
+    clientPhone: phone,
+  );
+}
+
+String _renderTemplate({
+  required String template,
+  required String clientCode,
+  required String clientName,
+  required String clientPhone,
+}) {
+  return template
+      .replaceAll('{{clientCode}}', clientCode)
+      .replaceAll('{{clientName}}', clientName)
+      .replaceAll('{{clientPhone}}', clientPhone);
 }

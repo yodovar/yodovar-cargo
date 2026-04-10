@@ -10,6 +10,12 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
+    const withTimeout = async <T,>(promise: Promise<T>, ms = 5000) => {
+      return await Promise.race<T | null>([
+        promise,
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), ms)),
+      ]);
+    };
     async function checkAuth() {
       const token = getAccessToken();
       if (!token) {
@@ -18,17 +24,19 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
       }
 
       try {
-        await apiFetch<{ role: string }>('/me');
+        const me = await withTimeout(apiFetch<{ role: string }>('/me'), 5000);
+        if (!me) throw new Error('timeout');
         if (!cancelled) setReady(true);
       } catch {
-        const restored = await refreshSession();
+        const restored = await withTimeout(refreshSession(), 5000);
         if (!restored) {
           clearTokens();
           router.replace('/login');
           return;
         }
         try {
-          await apiFetch<{ role: string }>('/me');
+          const me = await withTimeout(apiFetch<{ role: string }>('/me'), 5000);
+          if (!me) throw new Error('timeout');
           if (!cancelled) setReady(true);
         } catch {
           clearTokens();

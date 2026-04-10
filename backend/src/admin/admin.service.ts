@@ -10,6 +10,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateSupportContactDto } from './dto/create-support-contact.dto';
 import { CreateTariffDto } from './dto/create-tariff.dto';
 import { UpdateSupportContactDto } from './dto/update-support-contact.dto';
+import { CreatePickupPointDto } from './dto/create-pickup-point.dto';
+import { UpdatePickupPointDto } from './dto/update-pickup-point.dto';
 import { UpdateTariffDto } from './dto/update-tariff.dto';
 import { CreateChannelPostDto } from './dto/create-channel-post.dto';
 
@@ -31,12 +33,18 @@ export class AdminService {
     if (params.role) where.role = params.role;
     const q = params.q?.trim();
     if (q) {
-      const upper = q.toUpperCase();
-      where.OR = [
+      const upper = q.toUpperCase().replace(/\s+/g, '');
+      const digits = q.replace(/\D/g, '');
+      const or: Prisma.UserWhereInput[] = [
         { phone: { contains: q } },
         { name: { contains: q } },
         { clientCode: { contains: upper } },
       ];
+      // Match phones saved as +992… when staff types local digits only.
+      if (digits.length >= 4 && digits !== q) {
+        or.push({ phone: { contains: digits } });
+      }
+      where.OR = or;
     }
     const [items, total] = await Promise.all([
       this.prisma.user.findMany({
@@ -64,6 +72,7 @@ export class AdminService {
     status?: string;
     trackingCode?: string;
     clientCode?: string;
+    withoutClient?: boolean;
   }) {
     const where: Prisma.OrderWhereInput = {};
     if (params.status?.trim()) where.status = params.status.trim();
@@ -72,6 +81,9 @@ export class AdminService {
     const cc = params.clientCode?.trim().toUpperCase();
     if (cc) {
       where.client = { clientCode: cc };
+    }
+    if (params.withoutClient) {
+      where.clientId = null;
     }
     const [items, total] = await Promise.all([
       this.prisma.order.findMany({
@@ -93,6 +105,30 @@ export class AdminService {
       this.prisma.order.count({ where }),
     ]);
     return { items, total, skip: params.skip, take: params.take };
+  }
+
+  async ordersSummary() {
+    const [all, unpaid, byStatus] = await Promise.all([
+      this.prisma.order.count(),
+      this.prisma.order.count({ where: { isPaid: false } }),
+      this.prisma.order.groupBy({
+        by: ['status'],
+        _count: { _all: true },
+      }),
+    ]);
+    const statusMap = new Map(byStatus.map((r) => [r.status, r._count._all]));
+    return {
+      stats: {
+        all,
+        receivedChina: statusMap.get('received_china') ?? 0,
+        inTransit: statusMap.get('in_transit') ?? 0,
+        sorting: statusMap.get('sorting') ?? 0,
+        readyPickup: statusMap.get('ready_pickup') ?? 0,
+        withCourier: statusMap.get('with_courier') ?? 0,
+        unpaid,
+        completed: statusMap.get('completed') ?? 0,
+      },
+    };
   }
 
   async setUserRole(actorId: string, userId: string, role: UserRole) {
@@ -235,6 +271,68 @@ export class AdminService {
       actorId,
       action: 'support_contact.deleted',
       entityType: 'support_contact',
+      entityId: prev.id,
+      before: prev,
+      after: null,
+    });
+    return { ok: true as const };
+  }
+
+  listPickupPoints() {
+    return this.prisma.pickupPoint.findMany({ orderBy: { createdAt: 'asc' } });
+  }
+
+  async createPickupPoint(actorId: string, dto: CreatePickupPointDto) {
+    const exists = await this.prisma.pickupPoint.findUnique({
+      where: { key: dto.key },
+    });
+    if (exists) {
+      throw new BadRequestException('Пункт выдачи с таким key уже существует');
+    }
+    const created = await this.prisma.pickupPoint.create({
+      data: {
+        key: dto.key,
+        city: dto.city,
+        addressTemplate: dto.addressTemplate,
+      },
+    });
+    await this.audit.log({
+      actorId,
+      action: 'pickup_point.created',
+      entityType: 'pickup_point',
+      entityId: created.id,
+      before: null,
+      after: created,
+    });
+    return created;
+  }
+
+  async updatePickupPoint(actorId: string, key: string, dto: UpdatePickupPointDto) {
+    const prev = await this.prisma.pickupPoint.findUnique({ where: { key } });
+    if (!prev) throw new NotFoundException('Pickup point not found');
+    const updated = await this.prisma.pickupPoint.update({
+      where: { key },
+      data: dto,
+    });
+    await this.audit.log({
+      actorId,
+      action: 'pickup_point.updated',
+      entityType: 'pickup_point',
+      entityId: updated.id,
+      before: prev,
+      after: updated,
+    });
+    return updated;
+  }
+
+  async deletePickupPoint(actorId: string, key: string) {
+    const prev = await this.prisma.pickupPoint.findUnique({ where: { key } });
+    if (!prev) throw new NotFoundException('Pickup point not found');
+    await this.prisma.pickupPoint.delete({ where: { key } });
+    await this.audit.log({
+      actorId,
+      action: 'pickup_point.deleted',
+      entityType: 'pickup_point',
       entityId: prev.id,
       before: prev,
       after: null,

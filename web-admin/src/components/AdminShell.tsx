@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { clearTokens } from '@/lib/api';
 
 const links = [
@@ -17,11 +18,17 @@ const links = [
   { href: '/users', label: 'Пользователи' },
   { href: '/tariffs', label: 'Тарифы' },
   { href: '/contacts', label: 'Контакты' },
+  { href: '/pickup-points', label: 'Пункты выдачи' },
 ];
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
 
   return (
     <div className="flex min-h-screen bg-slate-100">
@@ -60,36 +67,47 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         </button>
       </aside>
       <main className="min-w-0 flex-1 p-4 md:p-6">
-        <div className="mb-4 rounded-xl border border-slate-200 bg-white p-3 md:hidden">
-          <div className="mb-2 flex items-center gap-2">
-            <Image src="/logo/logo.png" alt="Insof Cargo" width={24} height={24} />
-            <div className="text-base font-bold text-orange-600">Insof Cargo</div>
-          </div>
-          <nav className="flex gap-2 overflow-x-auto pb-1">
-            {links.map((l) => (
-              <Link
-                key={l.href}
-                href={l.href}
-                className={`whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium ${
-                  pathname === l.href
-                    ? 'bg-orange-50 text-orange-700'
-                    : 'text-slate-700 hover:bg-slate-50'
-                }`}
-              >
-                {l.label}
-              </Link>
-            ))}
+        <div className="mb-4 rounded-xl border border-slate-300 bg-white p-3 shadow-sm md:hidden">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Image src="/logo/logo.png" alt="Insof Cargo" width={24} height={24} />
+              <div className="text-base font-bold text-orange-700">Insof Cargo</div>
+            </div>
             <button
               type="button"
-              onClick={() => {
-                clearTokens();
-                router.replace('/login');
-              }}
-              className="whitespace-nowrap rounded-lg px-3 py-2 text-sm text-slate-500 hover:bg-slate-50"
+              onClick={() => setMobileMenuOpen((v) => !v)}
+              className="rounded-lg border border-slate-300 bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-800"
             >
-              Выйти
+              {mobileMenuOpen ? 'Закрыть' : '☰ Разделы'}
             </button>
-          </nav>
+          </div>
+          {mobileMenuOpen && (
+            <nav className="mt-3 grid grid-cols-2 gap-2">
+              {links.map((l) => (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  className={`rounded-lg px-3 py-2 text-center text-sm font-semibold ${
+                    pathname === l.href
+                      ? 'bg-orange-600 text-white'
+                      : 'border border-slate-300 bg-slate-50 text-slate-800'
+                  }`}
+                >
+                  {l.label}
+                </Link>
+              ))}
+              <button
+                type="button"
+                onClick={() => {
+                  clearTokens();
+                  router.replace('/login');
+                }}
+                className="col-span-2 rounded-lg border border-orange-300 bg-orange-50 px-3 py-2 text-sm font-semibold text-orange-700"
+              >
+                Выйти
+              </button>
+            </nav>
+          )}
         </div>
         {children}
       </main>

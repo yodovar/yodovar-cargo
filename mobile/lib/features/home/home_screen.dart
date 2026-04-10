@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import '../../core/app_theme.dart';
+import '../../core/lang.dart';
 import '../../core/pickup_points.dart';
 import '../../core/responsive.dart';
 import '../../core/profile_avatar_display.dart';
@@ -13,6 +14,7 @@ import '../auth/auth_session.dart';
 import 'notifications_page.dart';
 import 'orders_screen.dart';
 import 'pickup_points_screen.dart';
+import 'pickup_points_provider.dart';
 import 'support_screen.dart';
 import 'tariffs_screen.dart';
 import 'tracking_search_screen.dart';
@@ -78,7 +80,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       _clientCode = code;
       _avatarNetworkUrl = networkUrl;
       _avatarBytes = avatarBytes;
-      if (cityId != null && pickupPoints.any((e) => e.id == cityId)) {
+      if (cityId != null && cityId.trim().isNotEmpty) {
         _pickupCityId = cityId;
       }
     });
@@ -95,6 +97,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     });
     final unreadNotifications =
         ref.watch(unreadOrderNotificationsCountProvider).valueOrNull ?? 0;
+    final points = ref.watch(pickupPointsProvider).valueOrNull ?? pickupPoints;
+    final safeCityId = points.any((e) => e.id == _pickupCityId)
+        ? _pickupCityId
+        : points.first.id;
     return ColoredBox(
       color: const Color(0xFFF2F4F7),
       child: SafeArea(
@@ -111,7 +117,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 children: [
                   _ClientHeaderCard(
                     name: (_name ?? '').trim().isEmpty
-                        ? 'Пользователь'
+                        ? tr(context, ru: 'Пользователь', tg: 'Корбар')
                         : _name!.trim(),
                     clientCode: (_clientCode ?? '').trim().isEmpty
                         ? '-----'
@@ -129,12 +135,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     },
                   ),
                   const SizedBox(height: 14),
-                  const _OrderStatusesShowcase(
+                  _OrderStatusesShowcase(
                     statuses: [
-                      _OrderStatusChipData(label: 'Получено в Китае', count: 2),
-                      _OrderStatusChipData(label: 'В пути', count: 1),
-                      _OrderStatusChipData(label: 'Сортировка', count: 0),
-                      _OrderStatusChipData(label: 'Готово к выдаче', count: 1),
+                      _OrderStatusChipData(
+                        label: tr(context, ru: 'Получено в Китае', tg: 'Дар Чин қабул шуд'),
+                        count: 2,
+                      ),
+                      _OrderStatusChipData(label: tr(context, ru: 'В пути', tg: 'Дар роҳ'), count: 1),
+                      _OrderStatusChipData(
+                        label: tr(context, ru: 'Сортировка', tg: 'Ҷудокунии бор'),
+                        count: 0,
+                      ),
+                      _OrderStatusChipData(
+                        label: tr(context, ru: 'Готово к выдаче', tg: 'Омода барои супоридан'),
+                        count: 1,
+                      ),
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -144,9 +159,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                   const SizedBox(height: 16),
                   _SelectedAddressCard(
-                    cityId: _pickupCityId,
+                    cityId: safeCityId,
                     userName: _name ?? '',
                     userPhone: _phone ?? '',
+                    clientCode: _clientCode ?? '',
+                    points: points,
                   ),
                   const SizedBox(height: 20),
                   const _TrackCard(),
@@ -313,8 +330,8 @@ class _OrderStatusesShowcase extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Статусы заказов',
+          Text(
+            tr(context, ru: 'Статусы заказов', tg: 'Ҳолатҳои фармоишҳо'),
             style: TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.w800,
@@ -323,7 +340,11 @@ class _OrderStatusesShowcase extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Всего активных: $total',
+            tr(
+              context,
+              ru: 'Всего активных: $total',
+              tg: 'Ҳамагӣ фаъол: $total',
+            ),
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.9),
               fontWeight: FontWeight.w600,
@@ -418,7 +439,11 @@ class _OrderStatusCarouselState extends State<_OrderStatusCarousel> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Заказов: ${s.count}',
+                  tr(
+                    context,
+                    ru: 'Заказов: ${s.count}',
+                    tg: 'Фармоишҳо: ${s.count}',
+                  ),
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.95),
                     fontWeight: FontWeight.w600,
@@ -438,8 +463,8 @@ class _OrderStatusCarouselState extends State<_OrderStatusCarousel> {
   Widget build(BuildContext context) {
     final statuses = widget.statuses;
     if (statuses.isEmpty) {
-      return const Text(
-        'Статусов пока нет',
+      return Text(
+        tr(context, ru: 'Статусов пока нет', tg: 'Ҳоло ҳолат нест'),
         style: TextStyle(
           color: Colors.white,
           fontWeight: FontWeight.w600,
@@ -528,13 +553,15 @@ class _QuickGrid extends StatelessWidget {
     final items = [
       (
         Icons.qr_code_scanner_rounded,
-        'Адрес склада',
-        'QR и текст для Китая',
+        tr(context, ru: 'Адрес склада', tg: 'Суроғаи анбор'),
+        tr(context, ru: 'QR и текст для Китая', tg: 'QR ва матн барои Чин'),
         () {
           Navigator.of(context).push(
             MaterialPageRoute<void>(
               builder: (_) => PickupPointsScreen(
-                userName: userName.trim().isEmpty ? 'Пользователь' : userName,
+                userName: userName.trim().isEmpty
+                    ? tr(context, ru: 'Пользователь', tg: 'Корбар')
+                    : userName,
                 userPhone: userPhone.trim().isEmpty ? '+992' : userPhone,
               ),
             ),
@@ -543,8 +570,8 @@ class _QuickGrid extends StatelessWidget {
       ),
       (
         Icons.inventory_2_rounded,
-        'Мои заказы',
-        'Статусы посылок',
+        tr(context, ru: 'Мои заказы', tg: 'Фармоишҳои ман'),
+        tr(context, ru: 'Статусы посылок', tg: 'Ҳолати борҳо'),
         () {
           Navigator.of(context).push(
             MaterialPageRoute<void>(
@@ -555,8 +582,8 @@ class _QuickGrid extends StatelessWidget {
       ),
       (
         Icons.local_offer_rounded,
-        'Тарифы',
-        'Цены и условия',
+        tr(context, ru: 'Тарифы', tg: 'Тарифҳо'),
+        tr(context, ru: 'Цены и условия', tg: 'Нарх ва шартҳо'),
         () {
           Navigator.of(context).push(
             MaterialPageRoute<void>(
@@ -567,8 +594,8 @@ class _QuickGrid extends StatelessWidget {
       ),
       (
         Icons.support_agent_rounded,
-        'Поддержка',
-        'Помощь 24/7',
+        tr(context, ru: 'Поддержка', tg: 'Дастгирӣ'),
+        tr(context, ru: 'Помощь 24/7', tg: 'Кумак 24/7'),
         () {
           Navigator.of(context).push(
             MaterialPageRoute<void>(
@@ -677,19 +704,28 @@ class _SelectedAddressCard extends StatelessWidget {
     required this.cityId,
     required this.userName,
     required this.userPhone,
+    required this.clientCode,
+    required this.points,
   });
 
   final String cityId;
   final String userName;
   final String userPhone;
+  final String clientCode;
+  final List<PickupPoint> points;
 
   @override
   Widget build(BuildContext context) {
-    final point = pickupById(cityId);
+    final point = points.firstWhere(
+      (p) => p.id == cityId,
+      orElse: () => points.first,
+    );
     final addr = pickupAddressText(
       point: point,
       userName: userName,
       userPhone: userPhone,
+      clientCode: clientCode,
+      isTajik: isTajik(context),
     );
 
     return Container(
@@ -716,7 +752,11 @@ class _SelectedAddressCard extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Выбранный адрес: ${point.city}',
+                  tr(
+                    context,
+                    ru: 'Выбранный адрес: ${point.city}',
+                    tg: 'Суроғаи интихобшуда: ${point.city}',
+                  ),
                   style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
               ),
@@ -733,14 +773,14 @@ class _SelectedAddressCard extends StatelessWidget {
               await Clipboard.setData(ClipboardData(text: addr));
               if (!context.mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Адрес скопирован'),
+                SnackBar(
+                  content: Text(tr(context, ru: 'Адрес скопирован', tg: 'Суроға нусха шуд')),
                   behavior: SnackBarBehavior.floating,
                 ),
               );
             },
             icon: const Icon(Icons.copy_rounded),
-            label: const Text('Копировать'),
+            label: Text(tr(context, ru: 'Копировать', tg: 'Нусха кардан')),
           ),
         ],
       ),
@@ -771,7 +811,7 @@ class _TrackCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'Поиск по трек-коду',
+            tr(context, ru: 'Поиск по трек-коду', tg: 'Ҷустуҷӯ бо трек-код'),
             textAlign: TextAlign.start,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w700,
@@ -779,7 +819,11 @@ class _TrackCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Нажмите, чтобы открыть страницу поиска и найти свой заказ.',
+            tr(
+              context,
+              ru: 'Нажмите, чтобы открыть страницу поиска и найти свой заказ.',
+              tg: 'Барои кушодани саҳифаи ҷустуҷӯ ва ёфтани фармоиш пахш кунед.',
+            ),
             style: TextStyle(color: Colors.grey.shade700),
           ),
           const SizedBox(height: 12),
@@ -806,9 +850,9 @@ class _TrackCard extends StatelessWidget {
                     color: Color(0xFFF57C00),
                   ),
                   const SizedBox(width: 10),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Открыть поиск по трек-коду',
+                      tr(context, ru: 'Открыть поиск по трек-коду', tg: 'Кушодани ҷустуҷӯи трек-код'),
                       style: TextStyle(
                         fontWeight: FontWeight.w700,
                         color: Color(0xFF1A1D21),

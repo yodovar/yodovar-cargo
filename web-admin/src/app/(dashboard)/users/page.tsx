@@ -76,13 +76,13 @@ export default function UsersPage() {
 
       <div className="mt-4 flex flex-wrap gap-3 rounded-xl border border-slate-200 bg-white p-4">
         <input
-          className="min-w-[200px] flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          className="min-w-[200px] flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
           placeholder="Телефон, имя, код клиента"
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
         <select
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
           value={roleFilter}
           onChange={(e) => setRoleFilter(e.target.value)}
         >
@@ -102,11 +102,11 @@ export default function UsersPage() {
         </button>
       </div>
 
-      <p className="mt-2 text-sm text-slate-500">Всего: {total}</p>
+      <p className="mt-2 text-sm text-slate-700">Всего: {total}</p>
 
       <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200 bg-white">
-        <table className="w-full min-w-[700px] text-left text-sm">
-          <thead className="bg-slate-50 text-slate-600">
+        <table className="w-full min-w-[700px] text-left text-sm text-slate-900">
+          <thead className="bg-slate-200 text-slate-800">
             <tr>
               <th className="px-3 py-2">Телефон</th>
               <th className="px-3 py-2">Имя</th>
@@ -117,14 +117,14 @@ export default function UsersPage() {
           </thead>
           <tbody>
             {items.map((u) => (
-              <tr key={u.id} className="border-t border-slate-100">
-                <td className="px-3 py-2">{u.phone}</td>
-                <td className="px-3 py-2">{u.name || '—'}</td>
-                <td className="px-3 py-2 font-mono">{u.clientCode ?? '—'}</td>
-                <td className="px-3 py-2">{u.role}</td>
+              <tr key={u.id} className="border-t border-slate-200 bg-white">
+                <td className="px-3 py-2 text-slate-900">{u.phone}</td>
+                <td className="px-3 py-2 text-slate-800">{u.name || '—'}</td>
+                <td className="px-3 py-2 font-mono text-slate-900">{u.clientCode ?? '—'}</td>
+                <td className="px-3 py-2 text-slate-800">{u.role}</td>
                 <td className="px-3 py-2">
                   <select
-                    className="rounded border border-slate-300 px-2 py-1 text-xs"
+                    className="rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-900"
                     value={u.role}
                     disabled={saving === u.id}
                     onChange={(e) => {

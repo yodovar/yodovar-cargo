@@ -9,6 +9,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../core/api_client.dart';
 import '../../core/app_theme.dart';
+import '../../core/lang.dart';
 import '../../core/profile_avatar_display.dart';
 import '../../core/profile_avatar_url.dart';
 import '../auth/auth_repository.dart';
@@ -123,8 +124,8 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
       });
       ref.read(profileAvatarRevisionProvider.notifier).state++;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Фото сохранено на сервере'),
+        SnackBar(
+          content: Text(tr(context, ru: 'Фото сохранено на сервере', tg: 'Сурат дар сервер захира шуд')),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -134,7 +135,9 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
       final msg = e is DioException ? messageFromDio(e) : e.toString();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Не удалось загрузить фото: $msg'),
+          content: Text(
+            tr(context, ru: 'Не удалось загрузить фото: $msg', tg: 'Боркунии сурат нашуд: $msg'),
+          ),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -168,8 +171,8 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
       });
       ref.read(profileAvatarRevisionProvider.notifier).state++;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Фото профиля удалено'),
+        SnackBar(
+          content: Text(tr(context, ru: 'Фото профиля удалено', tg: 'Сурати профил ҳазф шуд')),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -179,7 +182,7 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
       final msg = e is DioException ? messageFromDio(e) : e.toString();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Не удалось удалить: $msg'),
+          content: Text(tr(context, ru: 'Не удалось удалить: $msg', tg: 'Ҳазф нашуд: $msg')),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -208,7 +211,7 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF2F4F7),
-      appBar: AppBar(title: const Text('Данные профиля')),
+      appBar: AppBar(title: Text(tr(context, ru: 'Данные профиля', tg: 'Маълумоти профил'))),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
@@ -226,13 +229,13 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
               children: [
                 avatar,
                 const SizedBox(height: 12),
-                const Text(
-                  'Фото профиля',
+                Text(
+                  tr(context, ru: 'Фото профиля', tg: 'Сурати профил'),
                   style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Хранится на сервере Insof Cargo',
+                  tr(context, ru: 'Хранится на сервере Insof Cargo', tg: 'Дар сервери Insof Cargo нигоҳ дошта мешавад'),
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.9),
@@ -248,7 +251,9 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
                       onPressed: _savingAvatar ? null : _pickAvatar,
                       icon: const Icon(Icons.add_a_photo_rounded, color: Colors.white),
                       label: Text(
-                        _savingAvatar ? 'Загрузка...' : 'Добавить фото',
+                        _savingAvatar
+                            ? tr(context, ru: 'Загрузка...', tg: 'Боркунӣ...')
+                            : tr(context, ru: 'Добавить фото', tg: 'Иловаи сурат'),
                         style: const TextStyle(color: Colors.white),
                       ),
                     ),
@@ -256,7 +261,10 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
                       TextButton.icon(
                         onPressed: _savingAvatar ? null : _removeAvatar,
                         icon: const Icon(Icons.delete_outline_rounded, color: Colors.white),
-                        label: const Text('Удалить', style: TextStyle(color: Colors.white)),
+                        label: Text(
+                          tr(context, ru: 'Удалить', tg: 'Ҳазф'),
+                          style: const TextStyle(color: Colors.white),
+                        ),
                       ),
                   ],
                 ),
@@ -264,19 +272,19 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
             ),
           ),
           const SizedBox(height: 14),
-          const Text(
-            'Мои данные',
+          Text(
+            tr(context, ru: 'Мои данные', tg: 'Маълумоти ман'),
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 8),
           _ViewTile(
             icon: Icons.badge_outlined,
-            title: 'Имя пользователя',
+            title: tr(context, ru: 'Имя пользователя', tg: 'Номи корбар'),
             subtitle: widget.name,
           ),
           _ViewTile(
             icon: Icons.phone_outlined,
-            title: 'Телефон',
+            title: tr(context, ru: 'Телефон', tg: 'Телефон'),
             subtitle: widget.phone,
           ),
         ],

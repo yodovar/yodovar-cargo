@@ -24,6 +24,8 @@ type OrderRow = {
     phone: string;
     clientCode: string | null;
   } | null;
+  guestName: string | null;
+  guestPhone: string | null;
 };
 
 export default function OrdersPage() {
@@ -32,6 +34,7 @@ export default function OrdersPage() {
   const [status, setStatus] = useState('');
   const [trackingCode, setTrackingCode] = useState('');
   const [clientCode, setClientCode] = useState('');
+  const [withoutClient, setWithoutClient] = useState(false);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
   const [updating, setUpdating] = useState<string | null>(null);
@@ -45,6 +48,7 @@ export default function OrdersPage() {
       if (status) q.set('status', status);
       if (trackingCode.trim()) q.set('trackingCode', trackingCode.trim());
       if (clientCode.trim()) q.set('clientCode', clientCode.trim());
+      if (withoutClient) q.set('withoutClient', '1');
       const res = await apiFetch<{ items: OrderRow[]; total: number }>(
         `/admin/orders?${q.toString()}`,
       );
@@ -55,7 +59,7 @@ export default function OrdersPage() {
     } finally {
       setLoading(false);
     }
-  }, [status, trackingCode, clientCode]);
+  }, [status, trackingCode, clientCode, withoutClient]);
 
   useEffect(() => {
     void load();
@@ -90,7 +94,7 @@ export default function OrdersPage() {
 
       <div className="mt-4 flex flex-wrap gap-3 rounded-xl border border-slate-200 bg-white p-4">
         <select
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
           value={status}
           onChange={(e) => setStatus(e.target.value)}
         >
@@ -102,13 +106,13 @@ export default function OrdersPage() {
           ))}
         </select>
         <input
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
           placeholder="Трек"
           value={trackingCode}
           onChange={(e) => setTrackingCode(e.target.value)}
         />
         <input
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
           placeholder="Код клиента"
           value={clientCode}
           onChange={(e) => setClientCode(e.target.value)}
@@ -120,13 +124,21 @@ export default function OrdersPage() {
         >
           {loading ? '…' : 'Обновить'}
         </button>
+        <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+          <input
+            type="checkbox"
+            checked={withoutClient}
+            onChange={(e) => setWithoutClient(e.target.checked)}
+          />
+          Без клиента в базе
+        </label>
       </div>
 
-      <p className="mt-2 text-sm text-slate-500">Всего: {total}</p>
+      <p className="mt-2 text-sm text-slate-700">Всего: {total}</p>
 
       <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200 bg-white">
-        <table className="w-full min-w-[800px] text-left text-sm">
-          <thead className="bg-slate-50 text-slate-600">
+        <table className="w-full min-w-[800px] text-left text-sm text-slate-900">
+          <thead className="bg-slate-200 text-slate-800">
             <tr>
               <th className="px-3 py-2">Трек</th>
               <th className="px-3 py-2">Статус</th>
@@ -138,17 +150,21 @@ export default function OrdersPage() {
           </thead>
           <tbody>
             {items.map((o) => (
-              <tr key={o.id} className="border-t border-slate-100">
-                <td className="px-3 py-2 font-mono">{o.trackingCode}</td>
-                <td className="px-3 py-2">{o.status}</td>
-                <td className="px-3 py-2">
-                  {o.client?.clientCode ?? '—'} / {o.client?.name ?? '—'}
+              <tr key={o.id} className="border-t border-slate-200 bg-white">
+                <td className="px-3 py-2 font-mono text-slate-900">{o.trackingCode}</td>
+                <td className="px-3 py-2 text-slate-800">{o.status}</td>
+                <td className="px-3 py-2 text-slate-900">
+                  {o.client
+                    ? `${o.client.clientCode ?? '—'} / ${o.client.name ?? '—'}`
+                    : o.guestName || o.guestPhone
+                      ? `Ручной: ${o.guestName ?? '—'} / ${o.guestPhone ?? '—'}`
+                      : '—'}
                 </td>
-                <td className="px-3 py-2">{o.weightGrams ?? '—'}</td>
-                <td className="px-3 py-2">{o.isPaid ? 'да' : 'нет'}</td>
+                <td className="px-3 py-2 text-slate-800">{o.weightGrams ?? '—'}</td>
+                <td className="px-3 py-2 text-slate-800">{o.isPaid ? 'да' : 'нет'}</td>
                 <td className="px-3 py-2">
                   <select
-                    className="max-w-[200px] rounded border border-slate-300 px-2 py-1 text-xs"
+                    className="max-w-[200px] rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-900"
                     value={o.status}
                     disabled={updating === o.id}
                     onChange={(e) => {

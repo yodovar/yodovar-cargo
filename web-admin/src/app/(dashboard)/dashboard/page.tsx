@@ -32,17 +32,22 @@ export default function DashboardPage() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      try {
-        const [s, a] = await Promise.all([
-          apiFetch<Summary>('/orders/summary'),
-          apiFetch<AuditRow[]>('/admin/audit?limit=8'),
-        ]);
-        if (!cancelled) {
-          setSummary(s);
-          setAudit(a);
-        }
-      } catch (e) {
-        if (!cancelled) setErr(e instanceof Error ? e.message : 'Ошибка');
+      const [summaryRes, auditRes] = await Promise.allSettled([
+        apiFetch<Summary>('/admin/orders-summary'),
+        apiFetch<AuditRow[]>('/admin/audit?limit=8'),
+      ]);
+      if (cancelled) return;
+
+      if (summaryRes.status === 'fulfilled') {
+        setSummary(summaryRes.value);
+      } else {
+        setErr(summaryRes.reason instanceof Error ? summaryRes.reason.message : 'Ошибка');
+      }
+
+      if (auditRes.status === 'fulfilled') {
+        setAudit(auditRes.value);
+      } else {
+        setAudit([]);
       }
     })();
     return () => {
@@ -76,9 +81,9 @@ export default function DashboardPage() {
         ].map(([label, v]) => (
           <div
             key={String(label)}
-            className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+            className="rounded-xl border border-slate-300 bg-white p-4 shadow-sm"
           >
-            <div className="text-sm text-slate-500">{label}</div>
+            <div className="text-sm text-slate-700">{label}</div>
             <div className="mt-1 text-2xl font-bold text-slate-900">{v ?? '—'}</div>
           </div>
         ))}
@@ -87,8 +92,8 @@ export default function DashboardPage() {
       <div className="mt-8">
         <h2 className="text-lg font-semibold text-slate-900">Последние события (аудит)</h2>
         <div className="mt-3 overflow-hidden rounded-xl border border-slate-200 bg-white">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 text-slate-600">
+          <table className="w-full text-left text-sm text-slate-900">
+            <thead className="bg-slate-200 text-slate-800">
               <tr>
                 <th className="px-4 py-2">Время</th>
                 <th className="px-4 py-2">Действие</th>
@@ -97,12 +102,12 @@ export default function DashboardPage() {
             </thead>
             <tbody>
               {audit.map((row) => (
-                <tr key={row.id} className="border-t border-slate-100">
-                  <td className="px-4 py-2 text-slate-600">
+                <tr key={row.id} className="border-t border-slate-200 bg-white">
+                  <td className="px-4 py-2 text-slate-800">
                     {new Date(row.createdAt).toLocaleString('ru-RU')}
                   </td>
-                  <td className="px-4 py-2">{row.action}</td>
-                  <td className="px-4 py-2">{row.entityType}</td>
+                  <td className="px-4 py-2 text-slate-900">{row.action}</td>
+                  <td className="px-4 py-2 text-slate-900">{row.entityType}</td>
                 </tr>
               ))}
               {audit.length === 0 && (

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/app_theme.dart';
+import '../../core/lang.dart';
 import 'auth_repository.dart';
 import 'auth_session.dart';
 
@@ -82,9 +83,9 @@ class _UsernameSetupScreenState extends ConsumerState<UsernameSetupScreen> {
                           ),
                         ),
                         const SizedBox(width: 12),
-                        const Expanded(
+                        Expanded(
                           child: Text(
-                            'Добавьте имя пользователя',
+                            tr(context, ru: 'Добавьте имя пользователя', tg: 'Номи корбарро илова кунед'),
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.w800,
@@ -96,7 +97,11 @@ class _UsernameSetupScreenState extends ConsumerState<UsernameSetupScreen> {
                     ),
                     const SizedBox(height: 14),
                     Text(
-                      'Это имя будет использоваться в вашем профиле и в адресе склада, чтобы сотрудники быстро находили ваши посылки.',
+                      tr(
+                        context,
+                        ru: 'Это имя будет использоваться в вашем профиле и в адресе склада, чтобы сотрудники быстро находили ваши посылки.',
+                        tg: 'Ин ном дар профил ва суроғаи анбор истифода мешавад, то кормандон борҳои шуморо зуд ёбанд.',
+                      ),
                       style: TextStyle(
                         color: Colors.grey.shade700,
                         height: 1.45,
@@ -123,13 +128,13 @@ class _UsernameSetupScreenState extends ConsumerState<UsernameSetupScreen> {
                     onFieldSubmitted: (_) => _save(),
                     validator: (v) {
                       if ((v ?? '').trim().length < 2) {
-                        return 'Введите имя (минимум 2 символа)';
+                        return tr(context, ru: 'Введите имя (минимум 2 символа)', tg: 'Номро ворид кунед (ҳадди ақал 2 рамз)');
                       }
                       return null;
                     },
                     decoration: InputDecoration(
-                      labelText: 'Имя пользователя',
-                      hintText: 'Например: Алишер',
+                      labelText: tr(context, ru: 'Имя пользователя', tg: 'Номи корбар'),
+                      hintText: tr(context, ru: 'Например: Алишер', tg: 'Масалан: Алишер'),
                       filled: true,
                       fillColor: const Color(0xFFF7F8FA),
                       border: OutlineInputBorder(
@@ -152,7 +157,7 @@ class _UsernameSetupScreenState extends ConsumerState<UsernameSetupScreen> {
                           strokeWidth: 2,
                         ),
                       )
-                    : const Text('Сохранить и продолжить'),
+                    : Text(tr(context, ru: 'Сохранить и продолжить', tg: 'Захира ва идома')),
               ),
             ],
           ),

@@ -9,6 +9,35 @@ final userPrefsProvider = Provider<UserPrefs>((ref) => UserPrefs());
 /// Увеличивайте после смены аватара, чтобы главная перечитала prefs.
 final profileAvatarRevisionProvider = StateProvider<int>((ref) => 0);
 
+enum AppLanguage { ru, tg }
+
+final appLanguageProvider =
+    StateNotifierProvider<AppLanguageNotifier, AppLanguage>((ref) {
+  return AppLanguageNotifier(ref.watch(userPrefsProvider));
+});
+
+class AppLanguageNotifier extends StateNotifier<AppLanguage> {
+  AppLanguageNotifier(this._prefs) : super(AppLanguage.ru) {
+    _bootstrap();
+  }
+
+  final UserPrefs _prefs;
+
+  Future<void> _bootstrap() async {
+    final code = await _prefs.readAppLanguageCode();
+    if (code == 'tg') {
+      state = AppLanguage.tg;
+    } else {
+      state = AppLanguage.ru;
+    }
+  }
+
+  Future<void> setLanguage(AppLanguage value) async {
+    state = value;
+    await _prefs.setAppLanguageCode(value == AppLanguage.tg ? 'tg' : 'ru');
+  }
+}
+
 final authSessionProvider =
     StateNotifierProvider<AuthSessionNotifier, AsyncValue<bool>>((ref) {
   return AuthSessionNotifier(

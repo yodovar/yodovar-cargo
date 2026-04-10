@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/app_theme.dart';
 import '../../core/app_messenger.dart';
+import '../../core/lang.dart';
 import '../../core/tj_phone.dart';
 import 'auth_repository.dart';
 import 'auth_session.dart';
@@ -57,9 +58,9 @@ class _PhoneAuthScreenState extends ConsumerState<PhoneAuthScreen> {
   @override
   Widget build(BuildContext context) {
     return AuthShell(
-      title: 'Регистрация / Вход',
+      title: tr(context, ru: 'Регистрация / Вход', tg: 'Бақайдгирӣ / Воридшавӣ'),
       subtitle:
-          'Введите номер (+992). Мы отправим SMS-код. Без пароля и без лишних шагов.',
+          tr(context, ru: 'Введите номер (+992). Мы отправим SMS-код. Без пароля и без лишних шагов.', tg: 'Рақамро ворид кунед (+992). Мо SMS-код мефиристем. Бе рамз ва қадамҳои изофӣ.'),
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(28, 0, 28, 24),
         child: Form(
@@ -85,7 +86,7 @@ class _PhoneAuthScreenState extends ConsumerState<PhoneAuthScreen> {
                           strokeWidth: 2,
                         ),
                       )
-                    : const Text('Получить код'),
+                    : Text(tr(context, ru: 'Получить код', tg: 'Гирифтани код')),
               ),
             ],
           ),
@@ -138,7 +139,7 @@ class _OtpBottomSheetState extends ConsumerState<_OtpBottomSheet> {
     final digits = _code.text.replaceAll(RegExp(r'\D'), '');
     if (digits.length != 6) {
       appMessengerKey.currentState?.showSnackBar(
-        const SnackBar(content: Text('Введите 6 цифр кода')),
+        SnackBar(content: Text(tr(context, ru: 'Введите 6 цифр кода', tg: '6 рақами кодро ворид кунед'))),
       );
       return;
     }
@@ -178,7 +179,7 @@ class _OtpBottomSheetState extends ConsumerState<_OtpBottomSheet> {
       if (!mounted) return;
       Navigator.of(context, rootNavigator: true).popUntil((r) => r.isFirst);
       appMessengerKey.currentState?.showSnackBar(
-        const SnackBar(content: Text('Успешный вход')),
+        SnackBar(content: Text(tr(context, ru: 'Успешный вход', tg: 'Воридшавӣ муваффақ шуд'))),
       );
     } catch (e) {
       appMessengerKey.currentState?.showSnackBar(
@@ -235,9 +236,9 @@ class _OtpBottomSheetState extends ConsumerState<_OtpBottomSheet> {
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Подтверждение номера',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+            Text(
+              tr(context, ru: 'Подтверждение номера', tg: 'Тасдиқи рақам'),
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 6),
             Text(widget.phone, style: TextStyle(color: Colors.grey.shade700)),
@@ -300,14 +301,14 @@ class _OtpBottomSheetState extends ConsumerState<_OtpBottomSheet> {
                         strokeWidth: 2,
                       ),
                     )
-                  : const Text('Подтвердить'),
+                  : Text(tr(context, ru: 'Подтвердить', tg: 'Тасдиқ кардан')),
             ),
             TextButton(
               onPressed: (_cooldown > 0 || _resendLoading) ? null : _resend,
               child: Text(
                 _cooldown > 0
-                    ? 'Отправить снова через $_cooldown с'
-                    : 'Отправить код снова',
+                    ? tr(context, ru: 'Отправить снова через $_cooldown с', tg: 'Боз фиристодан баъди $_cooldown с')
+                    : tr(context, ru: 'Отправить код снова', tg: 'Кодро боз фиристодан'),
               ),
             ),
           ],

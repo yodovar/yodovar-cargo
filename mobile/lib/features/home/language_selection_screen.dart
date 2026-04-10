@@ -1,24 +1,33 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-enum AppLanguageChoice { ru, tg }
+import '../auth/auth_session.dart';
 
-class LanguageSelectionScreen extends StatefulWidget {
+class LanguageSelectionScreen extends ConsumerStatefulWidget {
   const LanguageSelectionScreen({super.key});
 
   @override
-  State<LanguageSelectionScreen> createState() =>
+  ConsumerState<LanguageSelectionScreen> createState() =>
       _LanguageSelectionScreenState();
 }
 
-class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
-  AppLanguageChoice _selected = AppLanguageChoice.ru;
+class _LanguageSelectionScreenState
+    extends ConsumerState<LanguageSelectionScreen> {
+  late AppLanguage _selected;
+
+  @override
+  void initState() {
+    super.initState();
+    _selected = ref.read(appLanguageProvider);
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF2F4F7),
       appBar: AppBar(
-        title: const Text('Выбрать язык'),
+        title: Text(
+            _selected == AppLanguage.tg ? 'Интихоби забон' : 'Выбрать язык'),
         backgroundColor: Colors.transparent,
       ),
       body: ListView(
@@ -34,31 +43,40 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
               children: [
                 _LanguageTile(
                   title: 'Русский',
-                  selected: _selected == AppLanguageChoice.ru,
-                  onTap: () => setState(() => _selected = AppLanguageChoice.ru),
+                  selected: _selected == AppLanguage.ru,
+                  onTap: () => setState(() => _selected = AppLanguage.ru),
                 ),
                 Divider(height: 1, color: Colors.grey.shade200),
                 _LanguageTile(
                   title: 'Таджикский',
-                  selected: _selected == AppLanguageChoice.tg,
-                  onTap: () => setState(() => _selected = AppLanguageChoice.tg),
+                  selected: _selected == AppLanguage.tg,
+                  onTap: () => setState(() => _selected = AppLanguage.tg),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 12),
           FilledButton(
-            onPressed: () {
+            onPressed: () async {
+              await ref
+                  .read(appLanguageProvider.notifier)
+                  .setLanguage(_selected);
               final label =
-                  _selected == AppLanguageChoice.ru ? 'Русский' : 'Таджикский';
+                  _selected == AppLanguage.ru ? 'Русский' : 'Таджикский';
+              if (!context.mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Язык выбран: $label'),
+                  content: Text(
+                    _selected == AppLanguage.tg
+                        ? 'Забон интихоб шуд: $label'
+                        : 'Язык выбран: $label',
+                  ),
                   behavior: SnackBarBehavior.floating,
                 ),
               );
             },
-            child: const Text('Сохранить'),
+            child: Text(
+                _selected == AppLanguage.tg ? 'Нигоҳ доштан' : 'Сохранить'),
           ),
         ],
       ),

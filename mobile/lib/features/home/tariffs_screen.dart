@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/api_client.dart';
 import '../../core/app_theme.dart';
+import '../../core/lang.dart';
 
 final tariffsProvider = FutureProvider<List<TariffItem>>((ref) async {
   final dio = ref.read(dioProvider);
@@ -117,17 +118,17 @@ class TariffsScreen extends ConsumerWidget {
     final contacts = ref.watch(supportContactsProvider);
     return Scaffold(
       backgroundColor: const Color(0xFFF3F5F8),
-      appBar: AppBar(title: const Text('Тарифы')),
+      appBar: AppBar(title: Text(tr(context, ru: 'Тарифы', tg: 'Тарифҳо'))),
       body: tariffs.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => _ErrorState(
-          message: _dioMessage(e),
+          message: _dioMessage(context, e),
           onRetry: () => ref.invalidate(tariffsProvider),
         ),
         data: (items) {
           if (items.isEmpty) {
             return _ErrorState(
-              message: 'Тарифы пока не добавлены',
+              message: tr(context, ru: 'Тарифы пока не добавлены', tg: 'Тарифҳо ҳоло илова нашудаанд'),
               onRetry: () => ref.invalidate(tariffsProvider),
             );
           }
@@ -201,12 +202,16 @@ class _TariffCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      item.title,
+                      _tariffTitle(context, item),
                       style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '1 кг: \$${item.pricePerKgUsd.toStringAsFixed(1)}  |  1 м3: \$${item.pricePerCubicUsd.toStringAsFixed(0)}',
+                      tr(
+                        context,
+                        ru: '1 кг: \$${item.pricePerKgUsd.toStringAsFixed(1)}  |  1 м3: \$${item.pricePerCubicUsd.toStringAsFixed(0)}',
+                        tg: '1 кг: \$${item.pricePerKgUsd.toStringAsFixed(1)}  |  1 м3: \$${item.pricePerCubicUsd.toStringAsFixed(0)}',
+                      ),
                       style: TextStyle(color: Colors.grey.shade700),
                     ),
                   ],
@@ -230,7 +235,7 @@ class TariffDetailsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF3F5F8),
-      appBar: AppBar(title: Text(item.title)),
+      appBar: AppBar(title: Text(_tariffTitle(context, item))),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -250,7 +255,7 @@ class TariffDetailsScreen extends StatelessWidget {
                       Expanded(
                         child: _PriceChip(
                           icon: Icons.scale_rounded,
-                          title: 'За 1 кг',
+                          title: tr(context, ru: 'За 1 кг', tg: 'Барои 1 кг'),
                           value: '\$${item.pricePerKgUsd.toStringAsFixed(1)}',
                         ),
                       ),
@@ -258,7 +263,7 @@ class TariffDetailsScreen extends StatelessWidget {
                       Expanded(
                         child: _PriceChip(
                           icon: Icons.all_inbox_rounded,
-                          title: 'За 1 м3',
+                          title: tr(context, ru: 'За 1 м3', tg: 'Барои 1 м3'),
                           value: '\$${item.pricePerCubicUsd.toStringAsFixed(0)}',
                         ),
                       ),
@@ -267,12 +272,20 @@ class TariffDetailsScreen extends StatelessWidget {
                   const SizedBox(height: 10),
                   _BadgeLine(
                     icon: Icons.monitor_weight_outlined,
-                    text: 'Минимальный оплачиваемый вес: ${item.minChargeWeightG} г',
+                    text: tr(
+                      context,
+                      ru: 'Минимальный оплачиваемый вес: ${item.minChargeWeightG} г',
+                      tg: 'Вазни ҳаддиақали пардохтшаванда: ${item.minChargeWeightG} г',
+                    ),
                   ),
                   const SizedBox(height: 6),
                   _BadgeLine(
                     icon: Icons.schedule_rounded,
-                    text: 'Срок доставки: ${item.etaDaysMin}-${item.etaDaysMax} дней',
+                    text: tr(
+                      context,
+                      ru: 'Срок доставки: ${item.etaDaysMin}-${item.etaDaysMax} дней',
+                      tg: 'Муҳлати расондан: ${item.etaDaysMin}-${item.etaDaysMax} рӯз',
+                    ),
                   ),
                   const SizedBox(height: 10),
                   ...item.details.map(
@@ -377,7 +390,10 @@ class _ErrorState extends StatelessWidget {
             const SizedBox(height: 10),
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 10),
-            FilledButton.tonal(onPressed: onRetry, child: const Text('Повторить')),
+            FilledButton.tonal(
+              onPressed: onRetry,
+              child: Text(tr(context, ru: 'Повторить', tg: 'Такрор')),
+            ),
           ],
         ),
       ),
@@ -403,13 +419,17 @@ class _SupportCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Row(
               children: [
                 Icon(Icons.campaign_rounded, color: AppTheme.brandRed),
                 SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Если у вас большой объем, свяжитесь с нами для индивидуального тарифа',
+                    tr(
+                      context,
+                      ru: 'Если у вас большой объем, свяжитесь с нами для индивидуального тарифа',
+                      tg: 'Агар ҳаҷм калон бошад, барои тарифи инфиродӣ бо мо тамос гиред',
+                    ),
                     style: TextStyle(fontWeight: FontWeight.w700),
                   ),
                 ),
@@ -421,7 +441,9 @@ class _SupportCard extends StatelessWidget {
                 padding: EdgeInsets.symmetric(vertical: 8),
                 child: LinearProgressIndicator(minHeight: 3),
               ),
-              error: (_, __) => const Text('Не удалось загрузить контакты поддержки'),
+              error: (_, __) => Text(
+                tr(context, ru: 'Не удалось загрузить контакты поддержки', tg: 'Боркунии тамосҳои дастгирӣ нашуд'),
+              ),
               data: (items) => Wrap(
                 spacing: 10,
                 runSpacing: 10,
@@ -499,16 +521,24 @@ IconData _iconByName(String icon) {
   }
 }
 
-String _dioMessage(Object error) {
+String _dioMessage(BuildContext context, Object error) {
   if (error is DioException) {
     if (error.type == DioExceptionType.connectionError ||
         error.type == DioExceptionType.connectionTimeout ||
         error.type == DioExceptionType.receiveTimeout) {
-      return 'Нет связи с сервером. Попробуйте позже.';
+      return tr(
+        context,
+        ru: 'Нет связи с сервером. Попробуйте позже.',
+        tg: 'Бо сервер алоқа нест. Баъдтар кӯшиш кунед.',
+      );
     }
-    return 'Ошибка загрузки тарифов (${error.response?.statusCode ?? 'network'})';
+    return tr(
+      context,
+      ru: 'Ошибка загрузки тарифов (${error.response?.statusCode ?? 'network'})',
+      tg: 'Хатои боркунии тарифҳо (${error.response?.statusCode ?? 'network'})',
+    );
   }
-  return 'Не удалось загрузить тарифы';
+  return tr(context, ru: 'Не удалось загрузить тарифы', tg: 'Боркунии тарифҳо нашуд');
 }
 
 Future<void> _openSupportLink(BuildContext context, SupportContactItem item) async {
@@ -521,7 +551,7 @@ Future<void> _openSupportLink(BuildContext context, SupportContactItem item) asy
   }
   if (context.mounted) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Не удалось открыть ссылку')),
+      SnackBar(content: Text(tr(context, ru: 'Не удалось открыть ссылку', tg: 'Пайванд кушода нашуд'))),
     );
   }
 }
@@ -536,5 +566,19 @@ IconData _supportIcon(String key) {
       return Icons.chat_rounded;
     default:
       return Icons.support_agent_rounded;
+  }
+}
+
+String _tariffTitle(BuildContext context, TariffItem item) {
+  final tg = isTajik(context);
+  switch (item.key) {
+    case 'auto':
+      return tg ? 'Авто бор' : 'Авто груз';
+    case 'air':
+      return tg ? 'Бор тавассути ҳавопаймо' : 'Авиадоставка';
+    case 'express':
+      return tg ? 'Экспресс расондан' : 'Экспресс доставка';
+    default:
+      return item.title;
   }
 }

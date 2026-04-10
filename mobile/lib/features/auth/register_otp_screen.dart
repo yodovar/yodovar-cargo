@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/app_messenger.dart';
+import '../../core/lang.dart';
 import '../../core/app_theme.dart';
 import 'auth_repository.dart';
 import 'auth_session.dart';
@@ -65,8 +66,8 @@ class _RegisterOtpScreenState extends ConsumerState<RegisterOtpScreen> {
     final digits = _code.text.replaceAll(RegExp(r'\D'), '');
     if (digits.length != 6) {
       appMessengerKey.currentState?.showSnackBar(
-        const SnackBar(
-          content: Text('Введите 6 цифр из SMS'),
+        SnackBar(
+          content: Text(tr(context, ru: 'Введите 6 цифр из SMS', tg: '6 рақамро аз SMS ворид кунед')),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -88,8 +89,8 @@ class _RegisterOtpScreenState extends ConsumerState<RegisterOtpScreen> {
       Navigator.of(context).popUntil((route) => route.isFirst);
       if (!mounted) return;
       appMessengerKey.currentState?.showSnackBar(
-        const SnackBar(
-          content: Text('Номер подтверждён, вы вошли'),
+        SnackBar(
+          content: Text(tr(context, ru: 'Номер подтверждён, вы вошли', tg: 'Рақам тасдиқ шуд, шумо ворид шудед')),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -116,8 +117,8 @@ class _RegisterOtpScreenState extends ConsumerState<RegisterOtpScreen> {
       if (!mounted) return;
       _startCooldown(60);
       appMessengerKey.currentState?.showSnackBar(
-        const SnackBar(
-          content: Text('Код отправлен повторно'),
+        SnackBar(
+          content: Text(tr(context, ru: 'Код отправлен повторно', tg: 'Код дубора фиристода шуд')),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -137,9 +138,9 @@ class _RegisterOtpScreenState extends ConsumerState<RegisterOtpScreen> {
   @override
   Widget build(BuildContext context) {
     return AuthShell(
-      title: 'Подтверждение номера',
+      title: tr(context, ru: 'Подтверждение номера', tg: 'Тасдиқи рақам'),
       subtitle:
-          'Введите 6 цифр из SMS, отправленного на\n${widget.phone}',
+          tr(context, ru: 'Введите 6 цифр из SMS, отправленного на\n${widget.phone}', tg: '6 рақамро аз SMS-и фиристодашуда ба\n${widget.phone} ворид кунед'),
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(28, 0, 28, 24),
         child: Column(
@@ -163,7 +164,7 @@ class _RegisterOtpScreenState extends ConsumerState<RegisterOtpScreen> {
               ],
               decoration: authInputDecoration(
                 context: context,
-                label: 'Код из SMS',
+                label: tr(context, ru: 'Код из SMS', tg: 'Код аз SMS'),
                 hint: '• • • • • •',
               ).copyWith(
                 counterText: '',
@@ -186,7 +187,7 @@ class _RegisterOtpScreenState extends ConsumerState<RegisterOtpScreen> {
                         color: Colors.white,
                       ),
                     )
-                  : const Text('Подтвердить'),
+                  : Text(tr(context, ru: 'Подтвердить', tg: 'Тасдиқ кардан')),
             ),
             const SizedBox(height: 12),
             TextButton(
@@ -199,8 +200,8 @@ class _RegisterOtpScreenState extends ConsumerState<RegisterOtpScreen> {
                     )
                   : Text(
                       _cooldown > 0
-                          ? 'Отправить снова через $_cooldown с'
-                          : 'Отправить код снова',
+                          ? tr(context, ru: 'Отправить снова через $_cooldown с', tg: 'Боз фиристодан баъди $_cooldown с')
+                          : tr(context, ru: 'Отправить код снова', tg: 'Кодро боз фиристодан'),
                       style: const TextStyle(
                         fontWeight: FontWeight.w600,
                         color: AppTheme.brandRed,

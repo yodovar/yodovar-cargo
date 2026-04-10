@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api_client.dart';
+import '../../core/lang.dart';
 import '../auth/auth_session.dart';
 
 final orderNotificationsProvider =
@@ -58,21 +59,25 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF2F4F7),
       appBar: AppBar(
-        title: const Text('Уведомления'),
+        title: Text(tr(context, ru: 'Уведомления', tg: 'Огоҳномаҳо')),
         backgroundColor: Colors.transparent,
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
         children: [
           Text(
-            'Уведомления',
+            tr(context, ru: 'Уведомления', tg: 'Огоҳномаҳо'),
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w800,
                 ),
           ),
           const SizedBox(height: 4),
           Text(
-            'Новых: ${unread.valueOrNull ?? 0}',
+            tr(
+              context,
+              ru: 'Новых: ${unread.valueOrNull ?? 0}',
+              tg: 'Нав: ${unread.valueOrNull ?? 0}',
+            ),
             style: TextStyle(color: Colors.grey.shade600),
           ),
           const SizedBox(height: 10),
@@ -84,7 +89,9 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
             error: (_, __) => Center(
               child: FilledButton.tonal(
                 onPressed: () => ref.invalidate(orderNotificationsProvider),
-                child: const Text('Ошибка загрузки. Повторить'),
+                child: Text(
+                  tr(context, ru: 'Ошибка загрузки. Повторить', tg: 'Хатои боркунӣ. Такрор'),
+                ),
               ),
             ),
             data: (items) {
@@ -97,8 +104,12 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: Colors.grey.shade200),
                   ),
-                  child: const Text(
-                    'Пока нет уведомлений по статусам заказов.',
+                  child: Text(
+                    tr(
+                      context,
+                      ru: 'Пока нет уведомлений по статусам заказов.',
+                      tg: 'Ҳоло огоҳнома оид ба ҳолати фармоишҳо нест.',
+                    ),
                   ),
                 );
               }

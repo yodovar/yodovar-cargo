@@ -3,8 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/app_theme.dart';
+import '../../core/lang.dart';
 import '../../core/pickup_points.dart';
 import '../auth/auth_session.dart';
+import 'pickup_points_provider.dart';
 
 class PickupPointsScreen extends ConsumerStatefulWidget {
   const PickupPointsScreen({
@@ -22,6 +24,7 @@ class PickupPointsScreen extends ConsumerStatefulWidget {
 
 class _PickupPointsScreenState extends ConsumerState<PickupPointsScreen> {
   late String _selectedId;
+  String _clientCode = '';
   bool _loading = true;
 
   @override
@@ -32,12 +35,17 @@ class _PickupPointsScreenState extends ConsumerState<PickupPointsScreen> {
   }
 
   Future<void> _loadSelected() async {
-    final saved = await ref.read(userPrefsProvider).readPickupCityId();
+    final prefs = ref.read(userPrefsProvider);
+    final saved = await prefs.readPickupCityId();
+    final code = await prefs.readClientCode();
     if (!mounted) return;
-    if (saved != null && pickupPoints.any((e) => e.id == saved)) {
+    if (saved != null && saved.trim().isNotEmpty) {
       _selectedId = saved;
     }
-    setState(() => _loading = false);
+    setState(() {
+      _loading = false;
+      _clientCode = (code ?? '').trim().toUpperCase();
+    });
   }
 
   Future<void> _select(String id) async {
@@ -53,25 +61,35 @@ class _PickupPointsScreenState extends ConsumerState<PickupPointsScreen> {
       );
     }
 
-    final selected = pickupById(_selectedId);
+    final points = ref.watch(pickupPointsProvider).valueOrNull ?? pickupPoints;
+    final selected = points.firstWhere(
+      (p) => p.id == _selectedId,
+      orElse: () => points.first,
+    );
     final addr = pickupAddressText(
       point: selected,
       userName: widget.userName,
       userPhone: widget.userPhone,
+      clientCode: _clientCode,
+      isTajik: isTajik(context),
     );
 
     return Scaffold(
       backgroundColor: const Color(0xFFF2F4F7),
-      appBar: AppBar(title: const Text('Пункты выдачи')),
+      appBar: AppBar(title: Text(tr(context, ru: 'Пункты выдачи', tg: 'Нуқтаҳои супориш'))),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const Text(
-            'Выберите город, и адрес автоматически обновится.',
+          Text(
+            tr(
+              context,
+              ru: 'Выберите город, и адрес автоматически обновится.',
+              tg: 'Шаҳрро интихоб кунед, суроға худкор нав мешавад.',
+            ),
             style: TextStyle(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 12),
-          for (final p in pickupPoints)
+          for (final p in points)
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: InkWell(
@@ -126,7 +144,11 @@ class _PickupPointsScreenState extends ConsumerState<PickupPointsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Адрес для города: ${selected.city}',
+                  tr(
+                    context,
+                    ru: 'Адрес для города: ${selected.city}',
+                    tg: 'Суроға барои шаҳр: ${selected.city}',
+                  ),
                   style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 10),
@@ -140,14 +162,14 @@ class _PickupPointsScreenState extends ConsumerState<PickupPointsScreen> {
                     await Clipboard.setData(ClipboardData(text: addr));
                     if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Адрес скопирован'),
+                      SnackBar(
+                        content: Text(tr(context, ru: 'Адрес скопирован', tg: 'Суроға нусха шуд')),
                         behavior: SnackBarBehavior.floating,
                       ),
                     );
                   },
                   icon: const Icon(Icons.copy_rounded),
-                  label: const Text('Копировать адрес'),
+                  label: Text(tr(context, ru: 'Копировать адрес', tg: 'Нусхаи суроға')),
                 ),
               ],
             ),

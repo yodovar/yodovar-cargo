@@ -25,6 +25,12 @@ type TariffSeed = {
   details: TariffDetail[];
 };
 
+type PickupPointSeed = {
+  key: string;
+  city: string;
+  addressTemplate: string;
+};
+
 const DEFAULT_TARIFFS: TariffSeed[] = [
   {
     key: 'marketplace',
@@ -103,6 +109,57 @@ const DEFAULT_SUPPORT_CONTACTS: SupportContactSeed[] = [
   },
 ];
 
+const DEFAULT_PICKUP_POINTS: PickupPointSeed[] = [
+  {
+    key: 'dushanbe',
+    city: 'Душанбе',
+    addressTemplate:
+      '收货人: TEZBOR-DUSHANBE\n手机号: 18413362130\n浙江省金华市义乌市后宅街道洪华小区46栋2单元一楼DU.1仓库分部\n{{clientName}}, {{clientPhone}}',
+  },
+  {
+    key: 'yovon',
+    city: 'Ёвон',
+    addressTemplate:
+      '收货人: TEZBOR-YOVON\n手机号: 18413362130\n浙江省金华市义乌市后宅街道洪华小区46栋2单元一楼YN.5仓库分部\n{{clientName}}, {{clientPhone}}',
+  },
+  {
+    key: 'rasht',
+    city: 'Рашт',
+    addressTemplate:
+      '收货人: TEZBOR-RASHT\n手机号: 18413362130\n浙江省金华市义乌市后宅街道洪华小区46栋2单元一楼RSH-7仓库分部\n{{clientName}}, {{clientPhone}}',
+  },
+  {
+    key: 'istaravshan',
+    city: 'Истаравшан',
+    addressTemplate:
+      '收货人: TEZBOR-ISTARAVSHAN\n手机号: 17795595357\n浙江省金华市义乌市后宅街道洪华小区46栋2单元一楼[KHJ-2/IST]仓库分部\n{{clientName}}, {{clientPhone}}',
+  },
+  {
+    key: 'hisor',
+    city: 'Хисор',
+    addressTemplate:
+      '收货人: TEZBOR-HISOR\n手机号: 18413362130\n浙江省金华市义乌市后宅街道洪华小区46栋2单元一楼HI.3仓库分部\n{{clientName}}, {{clientPhone}}',
+  },
+  {
+    key: 'bokhtar',
+    city: 'Бохтар',
+    addressTemplate:
+      '收货人: TEZBOR-BOKHTAR\n手机号: 18413362130\n浙江省金华市义乌市后宅街道洪华小区46栋2单元一楼BKH.6仓库分部\n{{clientName}}, {{clientPhone}}',
+  },
+  {
+    key: 'khujand',
+    city: 'Худжанд',
+    addressTemplate:
+      '收货人: TEZBOR-KHUJAND\n手机号: 17795595357\n浙江省金华市义乌市后宅街道洪华小区46栋2单元一楼[KHJ-2]仓库分部\n{{clientName}}, {{clientPhone}}',
+  },
+  {
+    key: 'kulob',
+    city: 'Кулоб',
+    addressTemplate:
+      '收货人: TEZBOR-KULOB\n手机号: 18413362130\n浙江省金华市义乌市后宅街道洪华小区46栋2单元一楼KB.4仓库分部\n{{clientName}}, {{clientPhone}}',
+  },
+];
+
 @Injectable()
 export class TariffsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -127,6 +184,11 @@ export class TariffsService {
     return this.prisma.supportContact.findMany({ orderBy: { createdAt: 'asc' } });
   }
 
+  async listPickupPoints() {
+    await this.ensurePickupPointDefaults();
+    return this.prisma.pickupPoint.findMany({ orderBy: { createdAt: 'asc' } });
+  }
+
   private async ensureTariffDefaults() {
     const count = await this.prisma.tariff.count();
     if (count > 0) return;
@@ -149,6 +211,14 @@ export class TariffsService {
     if (count > 0) return;
     await this.prisma.supportContact.createMany({
       data: DEFAULT_SUPPORT_CONTACTS,
+    });
+  }
+
+  private async ensurePickupPointDefaults() {
+    const count = await this.prisma.pickupPoint.count();
+    if (count > 0) return;
+    await this.prisma.pickupPoint.createMany({
+      data: DEFAULT_PICKUP_POINTS,
     });
   }
 

@@ -9,12 +9,18 @@ export default function Home() {
 
   useEffect(() => {
     let cancelled = false;
+    const withTimeout = async <T,>(promise: Promise<T>, ms = 5000) => {
+      return await Promise.race<T | null>([
+        promise,
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), ms)),
+      ]);
+    };
     async function resolveRoute() {
       if (getAccessToken()) {
         router.replace('/dashboard');
         return;
       }
-      const restored = await refreshSession();
+      const restored = await withTimeout(refreshSession(), 5000);
       if (cancelled) return;
       if (restored) {
         router.replace('/dashboard');

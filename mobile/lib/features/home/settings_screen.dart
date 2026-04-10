@@ -24,12 +24,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Future<void> _deleteAccount() async {
+    final isTg = ref.read(appLanguageProvider) == AppLanguage.tg;
     final confirmed = await _confirmDeleteDialog();
     if (confirmed != true || !mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
+      SnackBar(
         content: Text(
-          'Удаление аккаунта временно доступно только через поддержку.',
+          isTg
+              ? 'Ҳазфи аккаунт муваққатан танҳо тавассути дастгирӣ дастрас аст.'
+              : 'Удаление аккаунта временно доступно только через поддержку.',
         ),
         behavior: SnackBarBehavior.floating,
       ),
@@ -37,11 +40,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Future<bool?> _confirmSignOutDialog() {
+    final isTg = ref.read(appLanguageProvider) == AppLanguage.tg;
     return showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Выйти из аккаунта?'),
-        content: const Text('Вы сможете войти снова в любой момент.'),
+        title: Text(isTg ? 'Аз аккаунт бароед?' : 'Выйти из аккаунта?'),
+        content: Text(
+          isTg
+              ? 'Шумо метавонед ҳар вақт дубора ворид шавед.'
+              : 'Вы сможете войти снова в любой момент.',
+        ),
         actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         actions: <Widget>[
           Row(
@@ -52,7 +60,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size.fromHeight(46),
                   ),
-                  child: const Text('Отмена'),
+                  child: Text(isTg ? 'Бекор кардан' : 'Отмена'),
                 ),
               ),
               const SizedBox(width: 10),
@@ -62,7 +70,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   style: FilledButton.styleFrom(
                     minimumSize: const Size.fromHeight(46),
                   ),
-                  child: const Text('Выйти'),
+                  child: Text(isTg ? 'Баромадан' : 'Выйти'),
                 ),
               ),
             ],
@@ -73,12 +81,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Future<bool?> _confirmDeleteDialog() {
+    final isTg = ref.read(appLanguageProvider) == AppLanguage.tg;
     return showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Удалить аккаунт?'),
-        content: const Text(
-          'Это действие нельзя отменить. Все ваши данные будут удалены.',
+        title: Text(isTg ? 'Аккаунтро нест кунед?' : 'Удалить аккаунт?'),
+        content: Text(
+          isTg
+              ? 'Ин амалро бекор кардан имкон надорад. Ҳамаи маълумоти шумо нест мешавад.'
+              : 'Это действие нельзя отменить. Все ваши данные будут удалены.',
         ),
         actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         actions: <Widget>[
@@ -90,7 +101,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size.fromHeight(46),
                   ),
-                  child: const Text('Отмена'),
+                  child: Text(isTg ? 'Бекор кардан' : 'Отмена'),
                 ),
               ),
               const SizedBox(width: 10),
@@ -101,7 +112,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     minimumSize: const Size.fromHeight(46),
                     backgroundColor: const Color(0xFFD84315),
                   ),
-                  child: const Text('Удалить'),
+                  child: Text(isTg ? 'Нест кардан' : 'Удалить'),
                 ),
               ),
             ],
@@ -113,10 +124,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isTg = ref.watch(appLanguageProvider) == AppLanguage.tg;
     return Scaffold(
       backgroundColor: const Color(0xFFF2F4F7),
       appBar: AppBar(
-        title: const Text('Настройки'),
+        title: Text(isTg ? 'Танзимот' : 'Настройки'),
         backgroundColor: Colors.transparent,
       ),
       body: ListView(
@@ -130,7 +142,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               border: Border.all(color: Colors.grey.shade200),
             ),
             child: Text(
-              'Управление аккаунтом',
+              isTg ? 'Идоракунии аккаунт' : 'Управление аккаунтом',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w800,
                   ),
@@ -159,10 +171,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 children: [
                   const Icon(Icons.language_rounded, color: AppTheme.brandRed),
                   const SizedBox(width: 10),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Выбрать язык',
-                      style: TextStyle(fontWeight: FontWeight.w700),
+                      isTg ? 'Интихоби забон' : 'Выбрать язык',
+                      style: const TextStyle(fontWeight: FontWeight.w700),
                     ),
                   ),
                   Icon(Icons.chevron_right_rounded,
@@ -181,7 +193,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               minimumSize: const Size.fromHeight(50),
             ),
             icon: const Icon(Icons.logout_rounded),
-            label: Text(_busy ? 'Подождите...' : 'Выйти'),
+            label: Text(
+              _busy
+                  ? (isTg ? 'Лутфан интизор шавед...' : 'Подождите...')
+                  : (isTg ? 'Баромадан' : 'Выйти'),
+            ),
           ),
           const SizedBox(height: 10),
           FilledButton.icon(
@@ -192,7 +208,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               minimumSize: const Size.fromHeight(50),
             ),
             icon: const Icon(Icons.delete_forever_rounded),
-            label: const Text('Удалить аккаунт'),
+            label: Text(isTg ? 'Нест кардани аккаунт' : 'Удалить аккаунт'),
           ),
         ],
       ),

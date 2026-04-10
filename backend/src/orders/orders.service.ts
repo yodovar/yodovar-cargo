@@ -157,7 +157,9 @@ export class OrdersService {
   }
 
   private async buildScopeWhere(userId: string, role: AuthRole) {
-    if (role !== 'client') return {};
+    // For mobile endpoints we always scope by current user.
+    // This prevents accidental leakage of all orders when role is not "client".
+    void role;
     return { clientId: userId };
   }
 }

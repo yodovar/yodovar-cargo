@@ -104,6 +104,15 @@ model SupportContact {
   createdAt        DateTime @default(now())
 }
 
+model PickupPoint {
+  id              String   @id @default(uuid())
+  key             String   @unique
+  city            String
+  addressTemplate String
+  updatedAt       DateTime @updatedAt
+  createdAt       DateTime @default(now())
+}
+
 model Order {
   id           String    @id @default(uuid())
   trackingCode String    @unique
@@ -114,6 +123,10 @@ model Order {
   client       User?     @relation(fields: [clientId], references: [id], onDelete: SetNull)
   /// Вес брутто, граммы (фиксирует склад КНР).
   weightGrams  Int?
+  /// Для ручной приёмки без аккаунта в системе.
+  guestName    String?
+  /// Для ручной приёмки без аккаунта в системе.
+  guestPhone   String?
   /// Когда выдано клиенту на складе ТЖ.
   handedOverAt DateTime?
   createdAt    DateTime  @default(now())

@@ -14,4 +14,9 @@ export class TariffsController {
   listSupportContacts() {
     return this.tariffs.listSupportContacts();
   }
+
+  @Get('pickup-points')
+  listPickupPoints() {
+    return this.tariffs.listPickupPoints();
+  }
 }

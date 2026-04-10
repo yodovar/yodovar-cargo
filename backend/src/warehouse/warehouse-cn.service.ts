@@ -22,17 +22,31 @@ export class WarehouseCnService {
 
   async intake(actorId: string, dto: CnIntakeDto) {
     const trackingCode = dto.trackingCode.trim().toUpperCase();
-    const clientCode = dto.clientCode.trim().toUpperCase();
+    const clientCode = dto.clientCode?.trim().toUpperCase() ?? '';
+    const guestName = dto.guestName?.trim() ?? '';
+    const guestPhone = dto.guestPhone?.trim() ?? '';
 
-    const client = await this.prisma.user.findUnique({
-      where: { clientCode },
-      select: { id: true, clientCode: true, name: true, role: true },
-    });
-    if (!client?.clientCode) {
-      throw new BadRequestException('Клиент с таким clientCode не найден');
+    if (!clientCode && !guestName && !guestPhone) {
+      throw new BadRequestException(
+        'Укажите clientCode, либо вручную введите данные клиента',
+      );
     }
-    if (client.role !== UserRole.client) {
-      throw new BadRequestException('clientCode должен принадлежать клиенту');
+
+    let client:
+      | { id: string; clientCode: string | null; name: string; role: UserRole }
+      | null = null;
+
+    if (clientCode) {
+      client = await this.prisma.user.findUnique({
+        where: { clientCode },
+        select: { id: true, clientCode: true, name: true, role: true },
+      });
+      if (!client?.clientCode) {
+        throw new BadRequestException('Клиент с таким clientCode не найден');
+      }
+      if (client.role !== UserRole.client) {
+        throw new BadRequestException('clientCode должен принадлежать клиенту');
+      }
     }
 
     const existing = await this.prisma.order.findUnique({
@@ -40,7 +54,7 @@ export class WarehouseCnService {
     });
 
     if (existing) {
-      if (existing.clientId && existing.clientId !== client.id) {
+      if (client && existing.clientId && existing.clientId !== client.id) {
         throw new BadRequestException(
           'Этот трек уже привязан к другому клиенту',
         );
@@ -48,7 +62,9 @@ export class WarehouseCnService {
       const updated = await this.prisma.order.update({
         where: { id: existing.id },
         data: {
-          clientId: client.id,
+          clientId: client?.id ?? null,
+          guestName: client ? null : guestName,
+          guestPhone: client ? null : guestPhone,
           status: 'received_china',
           ...(dto.weightGrams != null ? { weightGrams: dto.weightGrams } : {}),
         },
@@ -76,7 +92,9 @@ export class WarehouseCnService {
       data: {
         trackingCode,
         status: 'received_china',
-        clientId: client.id,
+        clientId: client?.id ?? null,
+        guestName: client ? null : guestName,
+        guestPhone: client ? null : guestPhone,
         weightGrams: dto.weightGrams ?? null,
         isPaid: false,
       },
@@ -89,12 +107,14 @@ export class WarehouseCnService {
       before: null,
       after: created,
     });
-    await this.push.sendOrderStatusChanged(
-      client.id,
-      created.id,
-      created.trackingCode,
-      created.status,
-    );
+    if (client?.id) {
+      await this.push.sendOrderStatusChanged(
+        client.id,
+        created.id,
+        created.trackingCode,
+        created.status,
+      );
+    }
     return this.selectOrderPublic(created.id);
   }
 
@@ -161,6 +181,8 @@ export class WarehouseCnService {
         isPaid: true,
         clientId: true,
         weightGrams: true,
+        guestName: true,
+        guestPhone: true,
         handedOverAt: true,
         createdAt: true,
         updatedAt: true,
