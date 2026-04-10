@@ -4,19 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api_client.dart';
 import '../auth/auth_session.dart';
 
-final notificationsTickProvider = StreamProvider<int>((ref) async* {
-  yield 0;
-  var i = 1;
-  while (true) {
-    await Future<void>.delayed(const Duration(seconds: 8));
-    yield i++;
-  }
-});
-
 final orderNotificationsProvider =
     FutureProvider<List<OrderNotificationItem>>((ref) async {
-  // Авто-обновление уведомлений без перезагрузки страницы приложения.
-  ref.watch(notificationsTickProvider);
   final dio = ref.read(dioProvider);
   final res = await dio.get<Map<String, dynamic>>(
     '/me/notifications',

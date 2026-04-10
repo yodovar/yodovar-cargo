@@ -11,6 +11,8 @@ import '../../core/user_prefs.dart';
 import '../auth/auth_session.dart';
 import 'profile_details_screen.dart';
 import 'pickup_points_screen.dart';
+import 'prohibited_goods_screen.dart';
+import 'settings_screen.dart';
 import 'tariffs_screen.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -114,6 +116,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   title: 'Сервисы',
                   children: [
                     _ActionTile(
+                      icon: Icons.settings_outlined,
+                      title: 'Настройки',
+                      subtitle: 'Выход и удаление аккаунта',
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const SettingsScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    _ActionTile(
                       icon: Icons.store_mall_directory_outlined,
                       title: 'Мой пункт выдачи',
                       subtitle: 'Адрес и график выдачи',
@@ -156,7 +170,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       icon: Icons.do_not_disturb_on_outlined,
                       title: 'Список запрещенных товаров',
                       subtitle: 'Что нельзя отправлять',
-                      onTap: () => _showSoon(context),
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const ProhibitedGoodsScreen(),
+                          ),
+                        );
+                      },
                     ),
                     _ActionTile(
                       icon: Icons.auto_awesome_outlined,
@@ -165,17 +185,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       onTap: () => _showSoon(context),
                     ),
                   ],
-                ),
-                const SizedBox(height: 16),
-                FilledButton.tonal(
-                  onPressed: () async {
-                    await ref.read(authSessionProvider.notifier).signOut();
-                  },
-                  style: FilledButton.styleFrom(
-                    foregroundColor: AppTheme.brandRed,
-                    minimumSize: const Size.fromHeight(52),
-                  ),
-                  child: const Text('Выйти из профиля'),
                 ),
               ],
             );
@@ -276,7 +285,8 @@ class _MergedDataCard extends StatelessWidget {
                         const SizedBox(width: 8),
                         GestureDetector(
                           onTap: () async {
-                            await Clipboard.setData(ClipboardData(text: clientCode));
+                            await Clipboard.setData(
+                                ClipboardData(text: clientCode));
                           },
                           child: Icon(
                             Icons.copy_rounded,

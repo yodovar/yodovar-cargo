@@ -31,6 +31,7 @@ class PushNotificationsService {
   static bool _initialized = false;
   static bool _available = false;
   static final ValueNotifier<int> channelPostRevision = ValueNotifier<int>(0);
+  static final ValueNotifier<int> notificationsRevision = ValueNotifier<int>(0);
 
   static Future<void> init() async {
     if (_initialized) return;
@@ -73,6 +74,7 @@ class PushNotificationsService {
     FirebaseMessaging.onMessage.listen((message) async {
       await _showLocalNotification(message);
       HapticFeedback.mediumImpact();
+      notificationsRevision.value = notificationsRevision.value + 1;
       if (message.data['type'] == 'channel_post') {
         channelPostRevision.value = channelPostRevision.value + 1;
       }

@@ -8,6 +8,7 @@ import '../auth/auth_repository.dart';
 import '../auth/auth_session.dart';
 import 'channels_screen.dart';
 import 'home_screen.dart';
+import 'notifications_page.dart';
 import 'orders_screen.dart';
 import 'profile_screen.dart';
 
@@ -23,6 +24,7 @@ class _MainShellState extends ConsumerState<MainShell>
     with WidgetsBindingObserver {
   int _index = 0;
   VoidCallback? _channelPushListener;
+  VoidCallback? _notificationsPushListener;
 
   Future<void> _goTab(int i) async {
     if (i == _index) return;
@@ -46,6 +48,10 @@ class _MainShellState extends ConsumerState<MainShell>
     PushNotificationsService.channelPostRevision.addListener(
       _channelPushListener!,
     );
+    _notificationsPushListener = _refreshNotificationsData;
+    PushNotificationsService.notificationsRevision.addListener(
+      _notificationsPushListener!,
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) => _syncIdentity());
   }
 
@@ -56,6 +62,11 @@ class _MainShellState extends ConsumerState<MainShell>
         _channelPushListener!,
       );
     }
+    if (_notificationsPushListener != null) {
+      PushNotificationsService.notificationsRevision.removeListener(
+        _notificationsPushListener!,
+      );
+    }
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -64,6 +75,7 @@ class _MainShellState extends ConsumerState<MainShell>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _refreshChannelData();
+      _refreshNotificationsData();
     }
   }
 
@@ -83,6 +95,11 @@ class _MainShellState extends ConsumerState<MainShell>
   void _refreshChannelData() {
     ref.invalidate(channelFeedProvider);
     ref.invalidate(unreadChannelPostsCountProvider);
+  }
+
+  void _refreshNotificationsData() {
+    ref.invalidate(orderNotificationsProvider);
+    ref.invalidate(unreadOrderNotificationsCountProvider);
   }
 
   @override
